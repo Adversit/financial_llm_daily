@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}数据统计{% endblock %}
+
+{% block content %}
+<style>
+    .wordcloud-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.2);
+    }
+
+    .wordcloud-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .wordcloud-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .wordcloud-container {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .wordcloud-controls {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .control-btn {
+        padding: 0.625rem 1.5rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 2px solid #e2e8f0;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+
+    .control-btn.active {
+        background: linear-gradient(135deg, #2563eb 0%, #1e4976 100%);
+        color: white;
+        border-color: transparent;
+    }
+
+    .wordcloud-image {
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #64748b;
+    }
+</style>
+
+<div class="wordcloud-header">
+    <div class="wordcloud-title">☁️ 词云分析</div>
+    <div class="wordcloud-subtitle">基于提取信息生成的关键词词云图</div>
+</div>
+
+<div class="wordcloud-container">
+    <div class="wordcloud-controls">
+        <button class="control-btn active" onclick="loadWordcloud('day')">
+            今日
+        </button>
+        <button class="control-btn" onclick="loadWordcloud('week')">
+            本周
+        </button>
+        <button class="control-btn" onclick="loadWordcloud('month')">
+            本月
+        </button>
+    </div>
+
+    <div id="wordcloud-display">
+        <div class="loading">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+            <div>正在生成词云...</div>
+        </div>
+    </div>
+</div>
+
+<div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 1rem 1.25rem; border-radius: 8px;">
+    <div style="font-weight: 600; color: #1e40af; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💡</span>
+        <span>使用说明</span>
+    </div>
+    <ul style="margin: 0; padding-left: 1.25rem; color: #1e40af; font-size: 0.875rem;">
+        <li>词云展示指定时间段内提取信息的关键词分布</li>
+        <li>字体越大表示该词出现频率越高</li>
+        <li>自动过滤常见停用词，保留有意义的关键词</li>
+        <li>数据每小时更新一次，结果会被缓存</li>
+    </ul>
+</div>
+
+<script>
+function loadWordcloud(scope) {
+    // 更新按钮状态
+    document.querySelectorAll('.control-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    // 显示加载状态
+    const display = document.getElementById('wordcloud-display');
+    display.innerHTML = `
+        <div class="loading">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+            <div>正在生成词云...</div>
+        </div>
+    `;
+
+    // 加载词云图片
+    const img = new Image();
+    img.onload = function() {
+        display.innerHTML = '';
+        img.className = 'wordcloud-image';
+        display.appendChild(img);
+    };
+    img.onerror = function() {
+        display.innerHTML = `
+            <div class="loading">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
+                <div style="color: #ef4444;">生成失败，可能是数据不足或系统错误</div>
+            </div>
+        `;
+    };
+    img.src = `/stats/wordcloud/image?scope=${scope}&width=1200&height=600&_t=${Date.now()}`;
+}
+
+// 页面加载时生成今日词云
+window.addEventListener('DOMContentLoaded', () => {
+    loadWordcloud('day');
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}偏好设置{% endblock %}
+
+{% block content %}
+<style>
+    /* 偏好设置页面专用样式 */
+    .preferences-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .preferences-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .preferences-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .pref-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 2rem;
+    }
+
+    .pref-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .pref-card-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .pref-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .pref-card-body {
+        padding: 1.5rem;
+    }
+
+    .template-item {
+        padding: 1.25rem;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s;
+    }
+
+    .template-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    .template-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .template-name {
+        font-weight: 600;
+        color: #0f172a;
+        font-size: 1rem;
+    }
+
+    .template-content-box {
+        padding: 1rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 0.75rem;
+        max-height: 140px;
+        overflow-y: auto;
+    }
+
+    .template-text {
+        white-space: pre-wrap;
+        font-size: 0.875rem;
+        color: #475569;
+        line-height: 1.6;
+    }
+
+    .template-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8125rem;
+        color: #64748b;
+    }
+
+    .help-box {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #2563eb;
+    }
+
+    .help-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .help-list {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: #475569;
+        font-size: 0.875rem;
+    }
+
+    .help-list li {
+        margin: 0.5rem 0;
+        line-height: 1.6;
+    }
+
+    .empty-state-pref {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+
+    .empty-icon-pref {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+    }
+
+    .empty-title-pref {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-desc-pref {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    @media (max-width: 1024px) {
+        .pref-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="preferences-header">
+    <div class="preferences-title">⚙️ 提示词模板管理</div>
+    <div class="preferences-subtitle">创建和管理您的个性化提示词模板（最多 {{ max_templates }} 条）</div>
+</div>
+
+<!-- 错误提示 -->
+{% if error %}
+<div style="background: #fee; border-left: 4px solid #f44; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; color: #c00;">
+    <strong>错误：</strong>{{ error }}
+</div>
+{% endif %}
+
+<!-- 双列布局 -->
+<div class="pref-grid">
+    <!-- 左侧：创建表单 -->
+    <div class="pref-card">
+        <div class="pref-card-header">
+            <h2 class="pref-card-title">
+                <span>✏️</span>
+                <span>新建/更新模板</span>
+            </h2>
+        </div>
+        <div class="pref-card-body">
+            <form method="post">
+                <div class="form-group">
+                    <label class="form-label">📝 模板名称</label>
+                    <input
+                        type="text"
+                        name="name"
+                        required
+                        class="form-control"
+                        placeholder="例如：技术分析模板"
+                        maxlength="100"
+                    >
+                    <div class="form-text">为模板起一个容易识别的名称</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">🎯 作用范围</label>
+                    <select name="scope" class="form-control">
+                        <option value="daily">Daily - 日报级别</option>
+                        <option value="article">Article - 文章级别</option>
+                    </select>
+                    <div class="form-text">选择模板应用的范围</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">💬 提示词内容</label>
+                    <textarea
+                        name="prompt_text"
+                        rows="6"
+                        class="form-control"
+                        maxlength="2000"
+                        placeholder="输入您的提示词内容（最多 2000 字符）"
+                        style="resize: vertical; min-height: 120px;"
+                    ></textarea>
+                    <div class="form-text">支持多行文本，最多 2000 字符</div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input
+                            type="checkbox"
+                            name="is_default"
+                            value="1"
+                            style="width: 1rem; height: 1rem; cursor: pointer;"
+                        >
+                        <span class="form-label" style="margin: 0;">⭐ 设为默认模板</span>
+                    </label>
+                    <div class="form-text">每个范围只能有一个默认模板</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    💾 保存模板
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 右侧：模板列表 -->
+    <div class="pref-card">
+        <div class="pref-card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="pref-card-title">
+                    <span>📚</span>
+                    <span>我的模板</span>
+                </h2>
+                <span class="badge badge-primary">{{ preferences|length }} / {{ max_templates }}</span>
+            </div>
+        </div>
+        <div class="pref-card-body">
+            {% if preferences %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for pref in preferences %}
+                <div class="template-item">
+                    <!-- 模板头部 -->
+                    <div class="template-header">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div class="template-name">{{ pref.name }}</div>
+                            {% if pref.is_default %}
+                            <span class="badge badge-success">⭐ 默认</span>
+                            {% endif %}
+                        </div>
+                        <span class="badge badge-gray">{{ pref.scope.value }}</span>
+                    </div>
+
+                    <!-- 提示词内容 -->
+                    <div class="template-content-box">
+                        <div class="template-text">{{ pref.prompt_text }}</div>
+                    </div>
+
+                    <!-- 元信息和操作 -->
+                    <div class="template-footer">
+                        <div>{{ pref.prompt_text|length }} / 2000 字符</div>
+                        <form method="post" action="/preferences/{{ pref.id }}/delete" style="margin: 0;">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这个模板吗？');">
+                                🗑️ 删除
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- 空状态 -->
+            <div class="empty-state-pref">
+                <div class="empty-icon-pref">📝</div>
+                <div class="empty-title-pref">还没有创建任何模板</div>
+                <div class="empty-desc-pref">在左侧表单中创建您的第一个提示词模板</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 帮助提示 -->
+<div class="help-box">
+    <div class="help-title">
+        <span>💡</span>
+        <span>使用提示</span>
+    </div>
+    <ul class="help-list">
+        <li>每个用户最多可以创建 {{ max_templates }} 个提示词模板</li>
+        <li>Daily 范围的模板作用于整个日报生成过程</li>
+        <li>Article 范围的模板作用于单篇文章分析</li>
+        <li>默认模板将在没有指定模板时自动使用</li>
+        <li>修改模板：使用相同名称保存即可覆盖原模板</li>
+    </ul>
+</div>
+
+{% endblock %}

@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}收件人管理{% endblock %}
+
+{% block content %}
+<style>
+    /* 收件人管理页面样式 */
+    .recipients-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .recipients-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .recipients-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-tab {
+        padding: 0.625rem 1.5rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+
+    .filter-tab-inactive {
+        background: white;
+        color: #64748b;
+        border-color: #e2e8f0;
+    }
+
+    .filter-tab-inactive:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+
+    .filter-tab-active {
+        background: linear-gradient(135deg, #2563eb 0%, #1e4976 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .create-form-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .create-form-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .create-form-grid {
+        display: grid;
+        grid-template-columns: 2fr 1.5fr 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .recipient-list {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .recipient-list-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .recipient-item {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        display: grid;
+        grid-template-columns: 60px 2fr 1.5fr 100px 100px 180px auto;
+        gap: 1rem;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+
+    .recipient-item:hover {
+        background: #fafbfc;
+    }
+
+    .recipient-item:last-child {
+        border-bottom: none;
+    }
+
+    .recipient-id {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .recipient-email {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .recipient-display-name {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .recipient-type-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .badge-recipient {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .badge-whitelist {
+        background: #e0e7ff;
+        color: #3730a3;
+    }
+
+    .status-toggle-btn {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+    }
+
+    .status-enabled {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-disabled {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .recipient-time {
+        font-size: 0.8125rem;
+        color: #64748b;
+    }
+
+    .delete-btn {
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .delete-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    @media (max-width: 1200px) {
+        .create-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .recipient-item {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="recipients-header">
+    <div class="recipients-title">📧 收件人管理</div>
+    <div class="recipients-subtitle">管理报告收件人和登录白名单</div>
+</div>
+
+<!-- 筛选标签 -->
+<div class="filter-tabs">
+    <a href="/admin/recipients" class="filter-tab {% if not filter_type %}filter-tab-active{% else %}filter-tab-inactive{% endif %}">
+        全部
+    </a>
+    <a href="/admin/recipients?recipient_type=recipient" class="filter-tab {% if filter_type == 'recipient' %}filter-tab-active{% else %}filter-tab-inactive{% endif %}">
+        📬 收件人
+    </a>
+    <a href="/admin/recipients?recipient_type=whitelist" class="filter-tab {% if filter_type == 'whitelist' %}filter-tab-active{% else %}filter-tab-inactive{% endif %}">
+        ✅ 白名单
+    </a>
+</div>
+
+<!-- 创建表单 -->
+<div class="create-form-card">
+    <div class="create-form-title">
+        <span>➕</span>
+        <span>添加收件人</span>
+    </div>
+    <form method="post" action="/admin/recipients/create">
+        <div class="create-form-grid">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">邮箱地址</label>
+                <input type="email" name="email" required placeholder="example@domain.com" class="form-control">
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">显示名称（可选）</label>
+                <input type="text" name="display_name" placeholder="张三" class="form-control">
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">类型</label>
+                <select name="type" required class="form-control">
+                    <option value="recipient">收件人</option>
+                    <option value="whitelist">白名单</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; margin-bottom: 0.5rem;">状态</label>
+                <label style="display: flex; align-items: center; height: 38px; cursor: pointer;">
+                    <input type="checkbox" name="enabled" checked style="width: 1rem; height: 1rem; margin-right: 0.5rem; cursor: pointer;">
+                    <span style="font-size: 0.875rem;">启用</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="align-self: end;">
+                ➕ 添加
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 收件人列表 -->
+<div class="recipient-list">
+    <div class="recipient-list-header">
+        <span>📋</span>
+        <span>收件人列表</span>
+    </div>
+
+    {% if recipients %}
+    {% for recipient in recipients %}
+    <div class="recipient-item">
+        <div class="recipient-id">#{{ recipient.id }}</div>
+
+        <div>
+            <div class="recipient-email">{{ recipient.email }}</div>
+            {% if recipient.display_name %}
+            <div class="recipient-display-name">{{ recipient.display_name }}</div>
+            {% endif %}
+        </div>
+
+        <div class="recipient-type-badge {% if recipient.type.value == 'whitelist' %}badge-whitelist{% else %}badge-recipient{% endif %}">
+            {% if recipient.type.value == 'whitelist' %}✅ 白名单{% else %}📬 收件人{% endif %}
+        </div>
+
+        <form method="post" action="/admin/recipients/{{recipient.id}}/toggle" style="margin: 0;">
+            <button type="submit" class="status-toggle-btn {% if recipient.enabled %}status-enabled{% else %}status-disabled{% endif %}">
+                {% if recipient.enabled %}✓ 已启用{% else %}⊗ 已禁用{% endif %}
+            </button>
+        </form>
+
+        <div class="recipient-time">{{ recipient.created_at.strftime('%Y-%m-%d') }}</div>
+        <div class="recipient-time">{{ recipient.created_at.strftime('%H:%M') }}</div>
+
+        <form method="post" action="/admin/recipients/{{recipient.id}}/delete" style="margin: 0;"
+              onsubmit="return confirm('确定删除 {{ recipient.email }} 吗？')">
+            <button type="submit" class="delete-btn">
+                🗑️ 删除
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <!-- 空状态 -->
+    <div style="padding: 4rem 2rem; text-align: center;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 1.5rem; background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem;">
+            📧
+        </div>
+        <div style="font-size: 1.125rem; font-weight: 600; color: #0f172a; margin-bottom: 0.5rem;">
+            暂无收件人
+        </div>
+        <div style="font-size: 0.875rem; color: #64748b;">
+            使用上方表单添加收件人或白名单用户
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 提示信息 -->
+<div style="background: #f3e8ff; border-left: 4px solid #7c3aed; padding: 1rem 1.25rem; border-radius: 8px; margin-top: 2rem;">
+    <div style="font-weight: 600; color: #5b21b6; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💡</span>
+        <span>使用说明</span>
+    </div>
+    <ul style="margin: 0; padding-left: 1.25rem; color: #5b21b6; font-size: 0.875rem;">
+        <li><strong>收件人</strong>：接收每日报告邮件的用户</li>
+        <li><strong>白名单</strong>：可以通过OTP验证码登录Web系统的用户</li>
+        <li>同一邮箱可以同时是收件人和白名单用户（创建两条记录）</li>
+        <li>禁用的收件人不会收到邮件，禁用的白名单无法登录</li>
+    </ul>
+</div>
+
+{% endblock %}

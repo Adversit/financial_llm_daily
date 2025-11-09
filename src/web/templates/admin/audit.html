@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}操作审计{% endblock %}
+
+{% block content %}
+<style>
+    /* 操作审计页面样式 */
+    .audit-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(240, 147, 251, 0.2);
+    }
+
+    .audit-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .audit-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .filter-bar {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .audit-log-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .log-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .log-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .log-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .log-table thead {
+        background: #f8fafc;
+    }
+
+    .log-table th {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .log-table td {
+        padding: 1rem 1.5rem;
+        font-size: 0.875rem;
+        color: #334155;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .log-table tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    .log-table tbody tr:hover {
+        background: #fafbfc;
+    }
+
+    .action-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .action-create {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .action-update {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .action-delete {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .action-toggle {
+        background: #e0e7ff;
+        color: #3730a3;
+    }
+
+    .action-config {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .empty-state {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+        .log-table {
+            font-size: 0.8125rem;
+        }
+
+        .log-table th,
+        .log-table td {
+            padding: 0.75rem;
+        }
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="audit-header">
+    <div class="audit-title">📝 操作审计</div>
+    <div class="audit-subtitle">查看系统操作日志和管理员行为记录</div>
+</div>
+
+<!-- 筛选栏 -->
+<div class="filter-bar">
+    <form method="get" style="display: contents;">
+        <div class="filter-row">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">操作类型</label>
+                <select name="action" class="form-control">
+                    <option value="">全部</option>
+                    {% for action_type in action_types %}
+                    <option value="{{ action_type }}" {% if current_action == action_type %}selected{% endif %}>
+                        {{ action_type }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">时间范围</label>
+                <select name="days" class="form-control">
+                    <option value="1" {% if current_days == 1 %}selected{% endif %}>今天</option>
+                    <option value="7" {% if current_days == 7 %}selected{% endif %}>最近7天</option>
+                    <option value="30" {% if current_days == 30 %}selected{% endif %}>最近30天</option>
+                    <option value="90" {% if current_days == 90 %}selected{% endif %}>最近90天</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="align-self: end;">
+                🔍 筛选
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 审计日志列表 -->
+<div class="audit-log-container">
+    <div class="log-header">
+        <div class="log-title">
+            <span>📋</span>
+            <span>操作日志（{{ logs|length }} 条）</span>
+        </div>
+    </div>
+
+    {% if logs %}
+    <table class="log-table">
+        <thead>
+            <tr>
+                <th style="width: 180px;">时间</th>
+                <th style="width: 150px;">操作者</th>
+                <th style="width: 120px;">操作类型</th>
+                <th style="width: 120px;">资源类型</th>
+                <th>资源ID</th>
+                <th style="width: 120px;">IP地址</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
+                <td style="font-size: 0.8rem;">{{ log.admin_email }}</td>
+                <td>
+                    {% if 'create' in log.action %}
+                    <span class="action-badge action-create">{{ log.action }}</span>
+                    {% elif 'update' in log.action or 'toggle' in log.action %}
+                    <span class="action-badge action-update">{{ log.action }}</span>
+                    {% elif 'delete' in log.action %}
+                    <span class="action-badge action-delete">{{ log.action }}</span>
+                    {% elif 'settings' in log.action %}
+                    <span class="action-badge action-config">{{ log.action }}</span>
+                    {% else %}
+                    <span class="action-badge action-toggle">{{ log.action }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ log.resource_type or '-' }}</td>
+                <td>{{ log.resource_id if log.resource_id else '-' }}</td>
+                <td>{{ log.ip_address or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+        <div style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">暂无审计日志</div>
+        <div style="font-size: 0.875rem;">所选时间范围内没有找到操作记录</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 提示信息 -->
+<div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 1rem 1.25rem; border-radius: 8px; margin-top: 2rem;">
+    <div style="font-weight: 600; color: #1e40af; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💡</span>
+        <span>审计说明</span>
+    </div>
+    <ul style="margin: 0; padding-left: 1.25rem; color: #1e40af; font-size: 0.875rem;">
+        <li>操作日志会自动记录所有管理员的关键操作</li>
+        <li>日志包含操作前后的数据变化（before/after JSON）</li>
+        <li>最多显示200条最近的记录，可通过筛选缩小范围</li>
+    </ul>
+</div>
+
+{% endblock %}

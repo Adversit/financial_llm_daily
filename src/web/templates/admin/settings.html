@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}系统设置{% endblock %}
+
+{% block content %}
+<style>
+    /* 系统设置页面样式 */
+    .settings-header {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(67, 233, 123, 0.2);
+    }
+
+    .settings-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .settings-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .settings-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+
+    .settings-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .setting-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+        align-items: start;
+    }
+
+    .setting-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .setting-label {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #334155;
+    }
+
+    .setting-desc {
+        font-size: 0.8125rem;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+    }
+
+    .setting-input {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .setting-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .color-input-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .color-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        cursor: pointer;
+    }
+
+    .save-button {
+        background: linear-gradient(135deg, #2563eb 0%, #1e4976 100%);
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9375rem;
+    }
+
+    .save-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    @media (max-width: 768px) {
+        .setting-row {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="settings-header">
+    <div class="settings-title">🔧 系统设置</div>
+    <div class="settings-subtitle">配置系统运行参数、展示选项和样式偏好</div>
+</div>
+
+<form action="/admin/settings" method="post">
+<!-- 报告生成设置 -->
+<div class="settings-section">
+    <div class="settings-section-title">
+        <span>📊</span>
+        <span>报告生成设置</span>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">每日报告信息TopN</label>
+            <div class="setting-desc">控制每日报告显示的信息条目数量上限</div>
+            <input type="number" name="report_topn" class="setting-input" value="{{ settings.report_topn }}" min="1" max="100" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">置信度阈值</label>
+            <div class="setting-desc">设置信息置信度评分阈值（0-1）</div>
+            <input type="number" name="confidence_threshold" class="setting-input" value="{{ settings.confidence_threshold }}" min="0" max="1" step="0.01" required>
+        </div>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">最小内容长度</label>
+            <div class="setting-desc">信息内容最小字符数要求</div>
+            <input type="number" name="min_content_len" class="setting-input" value="{{ settings.min_content_len }}" min="50" max="500" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">词云缓存时长（小时）</label>
+            <div class="setting-desc">词云图片缓存时间（24小时=1天）</div>
+            <input type="number" name="wordcloud_cache_ttl_hours" class="setting-input" value="{{ settings.wordcloud_cache_ttl_hours }}" min="1" max="168" required>
+        </div>
+    </div>
+</div>
+
+<!-- 数据采集设置 -->
+<div class="settings-section">
+    <div class="settings-section-title">
+        <span>📡</span>
+        <span>数据采集设置</span>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">RSS并发数</label>
+            <div class="setting-desc">RSS源采集并发数量</div>
+            <input type="number" name="crawl_concurrency_rss" class="setting-input" value="{{ settings.crawl_concurrency_rss }}" min="1" max="50" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">Web并发数</label>
+            <div class="setting-desc">网页采集并发数量</div>
+            <input type="number" name="crawl_concurrency_web" class="setting-input" value="{{ settings.crawl_concurrency_web }}" min="1" max="20" required>
+        </div>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">LLM超时时间（秒）</label>
+            <div class="setting-desc">LLM调用超时时间</div>
+            <input type="number" name="llm_timeout_sec" class="setting-input" value="{{ settings.llm_timeout_sec }}" min="30" max="300" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">LLM重试次数</label>
+            <div class="setting-desc">LLM失败后的重试次数</div>
+            <input type="number" name="llm_retries" class="setting-input" value="{{ settings.llm_retries }}" min="0" max="5" required>
+        </div>
+    </div>
+</div>
+
+<!-- 邮件发送设置 -->
+<div class="settings-section">
+    <div class="settings-section-title">
+        <span>📧</span>
+        <span>邮件发送设置</span>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">SMTP服务器</label>
+            <div class="setting-desc">SMTP服务器地址</div>
+            <input type="text" name="smtp_host" class="setting-input" value="{{ settings.smtp_host }}" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">SMTP端口</label>
+            <div class="setting-desc">SMTP服务器端口（SSL: 465）</div>
+            <input type="number" name="smtp_port" class="setting-input" value="{{ settings.smtp_port }}" min="1" max="65535" required>
+        </div>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">邮件批量限制</label>
+            <div class="setting-desc">单批次最多发送邮件数</div>
+            <input type="number" name="mail_batch_limit" class="setting-input" value="{{ settings.mail_batch_limit }}" min="1" max="100" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">发送速率（封/秒）</label>
+            <div class="setting-desc">邮件发送速率限制</div>
+            <input type="number" name="mail_rate_limit_per_sec" class="setting-input" value="{{ settings.mail_rate_limit_per_sec }}" min="1" max="10" required>
+        </div>
+    </div>
+</div>
+
+<!-- 颜色样式设置 -->
+<div class="settings-section">
+    <div class="settings-section-title">
+        <span>🎨</span>
+        <span>颜色样式设置</span>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">主色调</label>
+            <div class="setting-desc">系统主题色</div>
+            <div class="color-input-group">
+                <input type="color" class="color-preview" value="{{ settings.primary_color }}">
+                <input type="text" name="primary_color" class="setting-input" value="{{ settings.primary_color }}" style="flex: 1;" pattern="^#[0-9A-Fa-f]{6}$" required>
+            </div>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">次要色</label>
+            <div class="setting-desc">辅助主题色</div>
+            <div class="color-input-group">
+                <input type="color" class="color-preview" value="{{ settings.secondary_color }}">
+                <input type="text" name="secondary_color" class="setting-input" value="{{ settings.secondary_color }}" style="flex: 1;" pattern="^#[0-9A-Fa-f]{6}$" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">强调色</label>
+            <div class="setting-desc">按钮和重要元素颜色</div>
+            <div class="color-input-group">
+                <input type="color" class="color-preview" value="{{ settings.accent_color }}">
+                <input type="text" name="accent_color" class="setting-input" value="{{ settings.accent_color }}" style="flex: 1;" pattern="^#[0-9A-Fa-f]{6}$" required>
+            </div>
+        </div>
+
+        <div class="setting-item">
+            <!-- 占位，保持布局 -->
+        </div>
+    </div>
+</div>
+
+<!-- LLM Provider设置 -->
+<div class="settings-section">
+    <div class="settings-section-title">
+        <span>🤖</span>
+        <span>LLM Provider设置</span>
+    </div>
+
+    <div class="setting-row">
+        <div class="setting-item">
+            <label class="setting-label">主Provider (DeepSeek)</label>
+            <div class="setting-desc">主要使用的LLM Provider</div>
+            <input type="text" name="provider_deepseek" class="setting-input" value="{{ settings.provider_deepseek }}" required>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">备用Provider (Qwen)</label>
+            <div class="setting-desc">备用LLM Provider</div>
+            <input type="text" name="provider_qwen" class="setting-input" value="{{ settings.provider_qwen }}" required>
+        </div>
+    </div>
+</div>
+
+<!-- 操作按钮 -->
+<div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+    <button type="submit" class="save-button">
+        保存设置
+    </button>
+</div>
+</form>
+
+<!-- 提示信息 -->
+<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem 1.25rem; border-radius: 8px; margin-top: 2rem;">
+    <div style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>⚠️</span>
+        <span>注意事项</span>
+    </div>
+    <div style="color: #92400e; font-size: 0.875rem;">
+        修改系统设置可能影响报告生成和数据采集功能，请谨慎操作。设置保存后会在下次任务运行时生效。
+    </div>
+</div>
+
+<script>
+// 颜色选择器同步
+document.querySelectorAll('.color-preview').forEach(preview => {
+    const input = preview.nextElementSibling;
+
+    preview.addEventListener('change', (e) => {
+        input.value = e.target.value;
+    });
+
+    input.addEventListener('input', (e) => {
+        if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+            preview.value = e.target.value;
+        }
+    });
+});
+</script>
+
+{% endblock %}

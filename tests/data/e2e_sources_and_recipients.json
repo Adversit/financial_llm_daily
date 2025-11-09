@@ -1,0 +1,278 @@
+{
+  "sources": [
+    {
+      "name": "新智元",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3271041950.rss"
+    },
+    {
+      "name": "BigQuant",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3282383876.rss"
+    },
+    {
+      "name": "深度学习与NLP",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3214834875.rss"
+    },
+    {
+      "name": "数据猿",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3283796271.rss"
+    },
+    {
+      "name": "DeepTech深科技",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3075228534.rss"
+    },
+    {
+      "name": "智东西",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3081486433.rss"
+    },
+    {
+      "name": "光子星球",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3082518302.rss"
+    },
+    {
+      "name": "硅星人Pro",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3926568365.rss"
+    },
+    {
+      "name": "APPSO",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2392024520.rss"
+    },
+    {
+      "name": "赛博禅心",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3934419561.rss"
+    },
+    {
+      "name": "Z Finance",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3077513391.rss"
+    },
+    {
+      "name": "中国金融家杂志",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3596359401.rss"
+    },
+    {
+      "name": "AI前线",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3554086560.rss"
+    },
+    {
+      "name": "AI科技评论",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3098132220.rss"
+    },
+    {
+      "name": "机器之心",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3073282833.rss"
+    },
+    {
+      "name": "人工智能量化实验室",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3576660523.rss"
+    },
+    {
+      "name": "甲子光年",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3599245772.rss"
+    },
+    {
+      "name": "中国人工智能学会",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2398206135.rss"
+    },
+    {
+      "name": "量子位",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3236757533.rss"
+    },
+    {
+      "name": "脑极体",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3515522183.rss"
+    },
+    {
+      "name": "AIGC开放社区",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3873892677.rss"
+    },
+    {
+      "name": "消金界",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3560767185.rss"
+    },
+    {
+      "name": "金融监管研究",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3008848437.rss"
+    },
+    {
+      "name": "移动支付网",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2391444100.rss"
+    },
+    {
+      "name": "人民日报",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2392014380.rss"
+    },
+    {
+      "name": "新华社",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3084276724.rss"
+    },
+    {
+      "name": "中国证券报",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2393306340.rss"
+    },
+    {
+      "name": "工信微报",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2399501768.rss"
+    },
+    {
+      "name": "国家金融监督管理总局",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3239033926.rss"
+    },
+    {
+      "name": "中国互联网金融协会",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3007928352.rss"
+    },
+    {
+      "name": "中国银行业协会金融租赁委员会",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3541178870.rss"
+    },
+    {
+      "name": "统计微讯",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2396892002.rss"
+    },
+    {
+      "name": "证监会发布",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3087030803.rss"
+    },
+    {
+      "name": "网信中国",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3002542227.rss"
+    },
+    {
+      "name": "中国银协",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3236644258.rss"
+    },
+    {
+      "name": "中证协发布",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3003567236.rss"
+    },
+    {
+      "name": "清华五道口",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3071563336.rss"
+    },
+    {
+      "name": "北京大学国家金融研究中心",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3007142632.rss"
+    },
+    {
+      "name": "世界人工智能大会",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3582835969.rss"
+    },
+    {
+      "name": "36氪",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3264997043.rss"
+    },
+    {
+      "name": "第一财经",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2391375304.rss"
+    },
+    {
+      "name": "东方财富网",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3094313410.rss"
+    },
+    {
+      "name": "证券时报",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2394131000.rss"
+    },
+    {
+      "name": "经济参考报",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_2393702823.rss"
+    },
+    {
+      "name": "零壹财经",
+      "type": "rss",
+      "url": "http://101.42.187.241:8001/feed/MP_WXS_3072101414.rss"
+    },
+    {
+      "name": "OpenAI",
+      "type": "static",
+      "url": "https://openai.com/news"
+    },
+    {
+      "name": "Google Blog",
+      "type": "static",
+      "url": "https://blog.google"
+    },
+    {
+      "name": "Anthropic",
+      "type": "static",
+      "url": "https://www.anthropic.com/news"
+    },
+    {
+      "name": "xAI",
+      "type": "static",
+      "url": "https://x.ai/news"
+    },
+    {
+      "name": "NVIDIA News",
+      "type": "static",
+      "url": "https://www.nvidia.com/en-us/news"
+    },
+    {
+      "name": "Microsoft AI Blog",
+      "type": "static",
+      "url": "https://www.microsoft.com/en-us/ai/blog"
+    },
+    {
+      "name": "Finextra Research",
+      "type": "static",
+      "url": "https://www.finextra.com/news"
+    },
+    {
+      "name": "Savanta",
+      "type": "static",
+      "url": "https://savanta.com/industries/financial-services"
+    },
+    {
+      "name": "IDC",
+      "type": "static",
+      "url": "https://www.idc.com/about/rss"
+    }
+  ],
+  "recipients": [
+    "18348801013@163.com",
+    "3310783288@qq.com"
+  ]
+}

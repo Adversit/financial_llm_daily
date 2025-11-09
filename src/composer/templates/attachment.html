@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融情报日报全量附件 - {{ report_date }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .section {
+            background: white;
+            margin: 0 0 30px 0;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: #1e3a8a;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+        .section h3 {
+            margin: 25px 0 15px 0;
+            font-size: 18px;
+            color: #374151;
+        }
+        .item {
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background: #fafafa;
+            transition: all 0.2s;
+        }
+        .item:hover {
+            background: #f3f4f6;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .fact {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #111827;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .opinion {
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.7;
+            padding-left: 15px;
+            border-left: 3px solid #d1d5db;
+        }
+        .meta {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .link {
+            color: #3b82f6;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .link:hover {
+            color: #1e3a8a;
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .badge-confidence {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .stats {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #1e40af;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        @media print {
+            body {
+                background: white;
+            }
+            .item {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 金融情报日报 - 全量事实与观点</h1>
+        <p>{{ report_date }}</p>
+    </div>
+
+    {% if sections_full %}
+    {% for region, layers in sections_full.items() %}
+        <div class="section">
+            <h2>{{ region }}</h2>
+
+            <div class="stats">
+                共 {{ layers.values()|map('length')|sum }} 条 |
+                涵盖 {{ layers.keys()|list|length }} 个领域
+            </div>
+
+            {% for layer, items in layers.items() %}
+                <h3>{{ layer }} ({{ items|length }}条)</h3>
+                {% for item in items %}
+                <div class="item">
+                    <div class="fact">
+                        【事实】{{ item.fact }}
+                    </div>
+                    {% if item.opinion %}
+                    <div class="opinion">
+                        【观点】{{ item.opinion }}
+                    </div>
+                    {% endif %}
+                    <div class="meta">
+                        <span class="badge">{{ item.region }}</span>
+                        <span class="badge">{{ item.layer }}</span>
+                        <span class="badge badge-confidence">置信度 {{ "%.0f"|format(item.confidence * 100) }}%</span>
+                        <span>来源：</span>
+                        <a href="{{ item.article_url }}" class="link" target="_blank">{{ item.article_title }}</a>
+                        <span>|</span>
+                        <span>{{ item.source_name }}</span>
+                        <span>|</span>
+                        <span>{{ item.published_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <p>今日暂无内容</p>
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 40px; padding: 20px; background: #f9fafb; text-align: center; color: #6b7280; font-size: 12px; border-radius: 8px;">
+        <p>本附件由金融情报日报系统自动生成</p>
+        <p>包含所有抽取的事实与观点，供详细查阅</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}金融情报日报系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/custom.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <!-- Logo 区域 -->
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon">F</div>
+                <div class="sidebar-logo-text">
+                    <div class="sidebar-logo-title">金融情报日报</div>
+                    <div class="sidebar-logo-subtitle">FinIntel Daily</div>
+                </div>
+            </div>
+
+            <!-- 导航菜单 -->
+            <nav class="sidebar-nav">
+                <!-- 核心功能 -->
+                <div class="nav-section">
+                    <div class="nav-section-title">核心功能</div>
+                    <a href="/reports" class="nav-item {% if request.url.path.startswith('/reports') %}active{% endif %}">
+                        <span class="nav-item-icon">📊</span>
+                        <span>日报浏览</span>
+                    </a>
+                    <a href="/stats/wordcloud/view" class="nav-item {% if request.url.path.startswith('/stats') %}active{% endif %}">
+                        <span class="nav-item-icon">☁️</span>
+                        <span>数据统计</span>
+                    </a>
+                    <a href="/preferences" class="nav-item {% if request.url.path == '/preferences' %}active{% endif %}">
+                        <span class="nav-item-icon">⚙️</span>
+                        <span>偏好设置</span>
+                    </a>
+                </div>
+
+                <!-- 智能检索 (预留) -->
+                <div class="nav-section">
+                    <div class="nav-section-title">智能检索</div>
+                    <a href="#" class="nav-item" style="cursor: not-allowed; opacity: 0.6;">
+                        <span class="nav-item-icon">🔍</span>
+                        <span>RAG 检索</span>
+                        <span class="nav-item-coming">即将推出</span>
+                    </a>
+                    <a href="#" class="nav-item" style="cursor: not-allowed; opacity: 0.6;">
+                        <span class="nav-item-icon">🚀</span>
+                        <span>DeepSearch</span>
+                        <span class="nav-item-coming">即将推出</span>
+                    </a>
+                </div>
+
+                <!-- 管理员功能 -->
+                {% if current_user and current_user.role.value == 'admin' %}
+                <div class="nav-section">
+                    <div class="nav-section-title">系统管理</div>
+                    <a href="/admin" class="nav-item {% if request.url.path == '/admin' %}active{% endif %}">
+                        <span class="nav-item-icon">🏠</span>
+                        <span>管理首页</span>
+                    </a>
+                    <a href="/admin/sources" class="nav-item {% if request.url.path.startswith('/admin/sources') %}active{% endif %}">
+                        <span class="nav-item-icon">📡</span>
+                        <span>信息源管理</span>
+                    </a>
+                    <a href="/admin/recipients" class="nav-item {% if request.url.path.startswith('/admin/recipients') %}active{% endif %}">
+                        <span class="nav-item-icon">📧</span>
+                        <span>收件人管理</span>
+                    </a>
+                    <a href="/admin/settings" class="nav-item {% if request.url.path.startswith('/admin/settings') %}active{% endif %}">
+                        <span class="nav-item-icon">🔧</span>
+                        <span>系统设置</span>
+                    </a>
+                    <a href="/admin/status" class="nav-item {% if request.url.path.startswith('/admin/status') %}active{% endif %}">
+                        <span class="nav-item-icon">📈</span>
+                        <span>系统状态</span>
+                    </a>
+                    <a href="/admin/usage" class="nav-item {% if request.url.path.startswith('/admin/usage') %}active{% endif %}">
+                        <span class="nav-item-icon">💰</span>
+                        <span>费用统计</span>
+                    </a>
+                    <a href="/admin/audit" class="nav-item {% if request.url.path.startswith('/admin/audit') %}active{% endif %}">
+                        <span class="nav-item-icon">📝</span>
+                        <span>操作审计</span>
+                    </a>
+                </div>
+                {% endif %}
+            </nav>
+
+            <!-- 用户信息区 -->
+            {% if current_user %}
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">
+                    {{ current_user.email[0].upper() }}
+                </div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">{{ current_user.email }}</div>
+                    <div class="sidebar-user-role">
+                        {% if current_user.role.value == 'admin' %}管理员{% else %}用户{% endif %}
+                    </div>
+                </div>
+                <form action="/logout" method="post" style="margin: 0;">
+                    <button type="submit" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 0.5rem;" title="退出登录">
+                        🚪
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </aside>
+
+        <!-- 主内容区 -->
+        <div class="main-container">
+            <!-- 顶部导航栏 -->
+            <header class="topbar">
+                <div class="topbar-breadcrumb">
+                    <span>金融情报日报系统</span>
+                    <span class="breadcrumb-separator">/</span>
+                    <span>{% block breadcrumb %}首页{% endblock %}</span>
+                </div>
+                <div class="topbar-actions">
+                    {% block topbar_actions %}
+                    <button class="topbar-action-btn" onclick="window.open('/docs', '_blank')">
+                        📚 API文档
+                    </button>
+                    <button class="topbar-action-btn" onclick="window.location.href='/healthz'">
+                        💚 健康检查
+                    </button>
+                    {% endblock %}
+                </div>
+            </header>
+
+            <!-- 页面内容 -->
+            <main class="content-area">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

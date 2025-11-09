@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}信息源管理{% endblock %}
+
+{% block content %}
+<style>
+    /* 信息源管理页面样式 */
+    .sources-header {
+        background: linear-gradient(135deg, #2563eb 0%, #1e4976 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .sources-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .sources-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .source-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .source-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .source-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb 0%, #1e4976 100%);
+    }
+
+    .source-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .source-card-disabled {
+        opacity: 0.6;
+    }
+
+    .source-card-disabled::before {
+        background: linear-gradient(90deg, #9ca3af 0%, #6b7280 100%);
+    }
+
+    .source-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .source-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 0.375rem;
+    }
+
+    .source-url {
+        font-size: 0.8125rem;
+        color: #64748b;
+        word-break: break-all;
+        display: block;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .source-url:hover {
+        color: #2563eb;
+    }
+
+    .source-type-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .badge-rss {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .badge-web {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .source-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin: 1rem 0;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .control-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .control-input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .control-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .source-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .source-btn {
+        flex: 1;
+        padding: 0.625rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #2563eb 0%, #1e4976 100%);
+        color: white;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-toggle {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .btn-toggle:hover {
+        background: #e2e8f0;
+    }
+
+    .btn-toggle-active {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+
+    .empty-state-sources {
+        background: white;
+        border-radius: 12px;
+        padding: 4rem 2rem;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-icon-sources {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+    }
+
+    @media (max-width: 768px) {
+        .source-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .source-controls {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="sources-header">
+    <div class="sources-title">📡 信息源管理</div>
+    <div class="sources-subtitle">管理新闻采集源的配置和状态</div>
+</div>
+
+{% if sources %}
+<!-- 信息源网格 -->
+<div class="source-grid">
+    {% for source in sources %}
+    <div class="source-card {% if not source.enabled %}source-card-disabled{% endif %}">
+        <!-- 卡片头部 -->
+        <div class="source-header">
+            <div style="flex: 1; min-width: 0;">
+                <div class="source-name">{{ source.name }}</div>
+                <a href="{{ source.url }}" target="_blank" class="source-url">
+                    {{ source.url }}
+                </a>
+            </div>
+            <span class="source-type-badge {% if source.type.value == 'rss' %}badge-rss{% else %}badge-web{% endif %}">
+                {{ source.type.value }}
+            </span>
+        </div>
+
+        <!-- 控制面板 -->
+        <form method="post" action="/admin/sources/{{source.id}}/update" id="form-{{ source.id }}">
+            <div class="source-controls">
+                <div class="control-group">
+                    <label class="control-label">并发数</label>
+                    <input type="number" name="concurrency" value="{{ source.concurrency }}"
+                           min="1" max="50" class="control-input">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">超时(秒)</label>
+                    <input type="number" name="timeout_sec" value="{{ source.timeout_sec }}"
+                           min="5" max="300" class="control-input">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">区域提示</label>
+                    <select name="region_hint" class="control-input">
+                        <option value="国内" {% if source.region_hint.value == "国内" %}selected{% endif %}>国内</option>
+                        <option value="国外" {% if source.region_hint.value == "国外" %}selected{% endif %}>国外</option>
+                        <option value="未知" {% if source.region_hint.value == "未知" %}selected{% endif %}>未知</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">状态</label>
+                    <div style="display: flex; align-items: center; height: 38px; padding: 0 0.75rem; background: {% if source.enabled %}#d1fae5{% else %}#f1f5f9{% endif %}; border-radius: 6px;">
+                        <span style="font-size: 0.875rem; font-weight: 500; color: {% if source.enabled %}#065f46{% else %}#64748b{% endif %};">
+                            {% if source.enabled %}✓ 已启用{% else %}⊗ 已禁用{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="enabled" value="{{ 'true' if source.enabled else 'false' }}">
+            <input type="hidden" name="parser" value="{{ source.parser or '' }}">
+
+            <!-- 操作按钮 -->
+            <div class="source-actions">
+                <button type="submit" class="source-btn btn-save">
+                    💾 保存配置
+                </button>
+            </div>
+        </form>
+
+        <form method="post" action="/admin/sources/{{source.id}}/toggle" style="margin-top: 0.75rem;">
+            <button type="submit" class="source-btn {% if source.enabled %}btn-toggle{% else %}btn-toggle-active{% endif %}" style="width: 100%;">
+                {% if source.enabled %}⊗ 禁用此源{% else %}✓ 启用此源{% endif %}
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- 空状态 -->
+<div class="empty-state-sources">
+    <div class="empty-icon-sources">📡</div>
+    <div style="font-size: 1.125rem; font-weight: 600; color: #0f172a; margin-bottom: 0.5rem;">
+        暂无信息源
+    </div>
+    <div style="font-size: 0.875rem; color: #64748b;">
+        请联系管理员添加RSS源或网页源
+    </div>
+</div>
+{% endif %}
+
+<!-- 提示信息 -->
+<div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 1rem 1.25rem; border-radius: 8px; margin-top: 2rem;">
+    <div style="font-weight: 600; color: #1e40af; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💡</span>
+        <span>配置说明</span>
+    </div>
+    <ul style="margin: 0; padding-left: 1.25rem; color: #1e40af; font-size: 0.875rem;">
+        <li>并发数控制同时采集的线程数，建议1-10之间</li>
+        <li>超时时间根据网站响应速度调整，建议10-60秒</li>
+        <li>区域提示帮助系统选择合适的代理策略</li>
+        <li>禁用的信息源不会被采集，但配置会保留</li>
+    </ul>
+</div>
+
+{% endblock %}

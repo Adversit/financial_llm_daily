@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}费用统计{% endblock %}
+
+{% block content %}
+<style>
+    /* Token费用统计样式 */
+    .usage-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.2);
+    }
+
+    .usage-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .usage-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .cost-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .cost-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cost-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
+    }
+
+    .cost-label {
+        font-size: 0.8125rem;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .cost-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+    }
+
+    .cost-change {
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    .change-up {
+        color: #ef4444;
+    }
+
+    .change-down {
+        color: #10b981;
+    }
+
+    .provider-list {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .provider-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .provider-item {
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .provider-item:last-child {
+        border-bottom: none;
+    }
+
+    .provider-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .provider-name {
+        font-weight: 600;
+        color: #0f172a;
+        font-size: 1.125rem;
+    }
+
+    .provider-cost {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    .provider-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .metric-item {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .metric-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 0.375rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .usage-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .usage-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #2563eb 0%, #1e4976 100%);
+        border-radius: 4px;
+        transition: width 0.3s;
+    }
+
+    .date-filter {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="usage-header">
+    <div class="usage-title">💰 费用统计</div>
+    <div class="usage-subtitle">跟踪各LLM提供商的Token使用量和API调用成本</div>
+</div>
+
+<!-- 日期筛选 -->
+<div class="date-filter">
+    <div class="filter-row">
+        <div class="form-group" style="margin: 0;">
+            <label class="form-label">统计周期</label>
+            <select class="form-control">
+                <option value="today">今日</option>
+                <option value="week">本周</option>
+                <option value="month" selected>本月</option>
+                <option value="quarter">本季度</option>
+                <option value="year">本年</option>
+                <option value="custom">自定义</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+            <label class="form-label">开始日期</label>
+            <input type="date" class="form-control">
+        </div>
+
+        <div class="form-group" style="margin: 0;">
+            <label class="form-label">结束日期</label>
+            <input type="date" class="form-control">
+        </div>
+
+        <button class="btn btn-primary">
+            🔍 查询
+        </button>
+    </div>
+</div>
+
+<!-- 费用概览 -->
+<div class="cost-summary">
+    <div class="cost-card">
+        <div class="cost-label">本月总费用</div>
+        <div class="cost-value">¥156.78</div>
+        <div class="cost-change change-up">
+            ↑ 较上月 +12.5%
+        </div>
+    </div>
+
+    <div class="cost-card">
+        <div class="cost-label">总Token消耗</div>
+        <div class="cost-value">2.3M</div>
+        <div class="cost-change change-up">
+            ↑ 较上月 +8.2%
+        </div>
+    </div>
+
+    <div class="cost-card">
+        <div class="cost-label">API调用次数</div>
+        <div class="cost-value">1,234</div>
+        <div class="cost-change change-down">
+            ↓ 较上月 -3.1%
+        </div>
+    </div>
+
+    <div class="cost-card">
+        <div class="cost-label">平均单次成本</div>
+        <div class="cost-value">¥0.13</div>
+        <div class="cost-change change-up">
+            ↑ 较上月 +5.8%
+        </div>
+    </div>
+</div>
+
+<!-- 提供商详细统计 -->
+<div class="provider-list">
+    <div class="provider-header">
+        <span>🤖</span>
+        <span>提供商明细</span>
+    </div>
+
+    <!-- OpenAI -->
+    <div class="provider-item">
+        <div class="provider-top">
+            <div>
+                <div class="provider-name">🟢 OpenAI</div>
+                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
+                    GPT-4 & GPT-3.5 系列
+                </div>
+            </div>
+            <div class="provider-cost">¥98.50</div>
+        </div>
+
+        <div class="provider-metrics">
+            <div class="metric-item">
+                <div class="metric-label">Token消耗</div>
+                <div class="metric-value">1.2M</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">API调用</div>
+                <div class="metric-value">685</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">平均延迟</div>
+                <div class="metric-value">1.2s</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">成功率</div>
+                <div class="metric-value">99.1%</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 62.8%</div>
+            <div class="usage-bar">
+                <div class="usage-bar-fill" style="width: 62.8%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anthropic -->
+    <div class="provider-item">
+        <div class="provider-top">
+            <div>
+                <div class="provider-name">🟣 Anthropic</div>
+                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
+                    Claude 系列
+                </div>
+            </div>
+            <div class="provider-cost">¥42.30</div>
+        </div>
+
+        <div class="provider-metrics">
+            <div class="metric-item">
+                <div class="metric-label">Token消耗</div>
+                <div class="metric-value">680K</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">API调用</div>
+                <div class="metric-value">320</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">平均延迟</div>
+                <div class="metric-value">0.9s</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">成功率</div>
+                <div class="metric-value">99.7%</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 27.0%</div>
+            <div class="usage-bar">
+                <div class="usage-bar-fill" style="width: 27.0%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DeepSeek -->
+    <div class="provider-item">
+        <div class="provider-top">
+            <div>
+                <div class="provider-name">🔵 DeepSeek</div>
+                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
+                    DeepSeek Chat
+                </div>
+            </div>
+            <div class="provider-cost">¥12.80</div>
+        </div>
+
+        <div class="provider-metrics">
+            <div class="metric-item">
+                <div class="metric-label">Token消耗</div>
+                <div class="metric-value">320K</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">API调用</div>
+                <div class="metric-value">180</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">平均延迟</div>
+                <div class="metric-value">0.7s</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">成功率</div>
+                <div class="metric-value">98.9%</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 8.2%</div>
+            <div class="usage-bar">
+                <div class="usage-bar-fill" style="width: 8.2%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 智谱AI -->
+    <div class="provider-item">
+        <div class="provider-top">
+            <div>
+                <div class="provider-name">🟡 智谱AI</div>
+                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
+                    GLM 系列
+                </div>
+            </div>
+            <div class="provider-cost">¥3.18</div>
+        </div>
+
+        <div class="provider-metrics">
+            <div class="metric-item">
+                <div class="metric-label">Token消耗</div>
+                <div class="metric-value">120K</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">API调用</div>
+                <div class="metric-value">49</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">平均延迟</div>
+                <div class="metric-value">0.5s</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">成功率</div>
+                <div class="metric-value">100%</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 2.0%</div>
+            <div class="usage-bar">
+                <div class="usage-bar-fill" style="width: 2.0%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 提示信息 -->
+<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem 1.25rem; border-radius: 8px;">
+    <div style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💡</span>
+        <span>费用说明</span>
+    </div>
+    <ul style="margin: 0; padding-left: 1.25rem; color: #92400e; font-size: 0.875rem;">
+        <li>费用基于各提供商的公开定价计算，实际账单可能略有差异</li>
+        <li>Token统计包含输入和输出Token总和</li>
+        <li>建议设置月度预算限额，避免超支</li>
+        <li>可导出详细账单用于财务审核</li>
+    </ul>
+</div>
+
+{% endblock %}

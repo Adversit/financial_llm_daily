@@ -1,0 +1,130 @@
+[tool.poetry]
+name = "fin-daily-report"
+version = "1.0.0"
+description = "金融情报日报系统 - 自动化信息采集、处理和投递平台"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# Web 框架
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+
+# 数据库
+sqlalchemy = "^2.0.23"
+psycopg2-binary = "^2.9.9"
+alembic = "^1.12.1"
+
+# 异步任务
+celery = "^5.3.4"
+redis = "^5.0.1"
+
+# HTTP 请求
+requests = "^2.31.0"
+httpx = "^0.25.2"
+
+# RSS 解析
+feedparser = "^6.0.10"
+
+# 网页采集与解析
+playwright = "^1.40.0"
+trafilatura = "^1.6.3"
+readability-lxml = "^0.8.1"
+beautifulsoup4 = "^4.12.2"
+lxml = "^4.9.3"
+
+# 文本处理
+simhash = "^2.1.2"
+jieba = "^0.42.1"
+wordcloud = "^1.9.3"
+matplotlib = "^3.8.2"
+
+# LLM SDK
+openai = "^1.3.0"
+
+# 邮件
+aiosmtplib = "^3.0.1"
+
+# 模板引擎
+jinja2 = "^3.1.2"
+python-multipart = "^0.0.6"
+itsdangerous = "^2.1.2"
+pyjwt = {extras = ["crypto"], version = "^2.8.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+email-validator = "^2.1.0"
+bleach = "^6.1.0"
+
+# 工具
+python-dotenv = "^1.0.0"
+loguru = "^0.7.2"
+tenacity = "^8.2.3"
+python-dateutil = "^2.8.2"
+
+# CLI
+click = "^8.1.7"
+
+[tool.poetry.group.dev.dependencies]
+# 测试
+pytest = "^7.4.3"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.21.1"
+
+# 代码质量
+black = "^23.12.0"
+flake8 = "^6.1.0"
+mypy = "^1.7.1"
+isort = "^5.13.0"
+
+# 调试
+ipython = "^8.18.1"
+ipdb = "^0.13.13"
+
+[tool.poetry.scripts]
+# CLI 命令快捷方式
+run-once = "src.cli.run_once:run_once"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=src --cov-report=term-missing --cov-report=html"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<style>
+    /* 管理后台首页样式 */
+    .admin-header {
+        background: linear-gradient(135deg, #1e4976 0%, #2563eb 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .admin-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .admin-subtitle {
+        font-size: 0.9375rem;
+        opacity: 0.95;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb 0%, #1e4976 100%);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s;
+    }
+
+    .action-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .action-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .action-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .action-icon-blue {
+        background: linear-gradient(135deg, #2563eb 0%, #1e4976 100%);
+    }
+
+    .action-icon-purple {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .action-icon-green {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .action-icon-orange {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .action-icon-cyan {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .action-icon-red {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .action-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+    }
+
+    .action-desc {
+        font-size: 0.875rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .info-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .info-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        padding: 1.25rem;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .info-label {
+        font-size: 0.8125rem;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+</style>
+
+<!-- 页面头部 -->
+<div class="admin-header">
+    <div class="admin-title">🏠 {{ page_title }}</div>
+    <div class="admin-subtitle">系统管理控制台 - 快速访问常用管理功能</div>
+</div>
+
+<!-- 快捷操作 -->
+<div class="quick-actions">
+    <a href="/admin/sources" class="action-card">
+        <div class="action-icon action-icon-blue">📡</div>
+        <div class="action-title">信息源管理</div>
+        <div class="action-desc">管理RSS源、网页源等数据采集配置</div>
+    </a>
+
+    <a href="/admin/recipients" class="action-card">
+        <div class="action-icon action-icon-purple">📧</div>
+        <div class="action-title">收件人管理</div>
+        <div class="action-desc">配置邮件接收者和白名单用户</div>
+    </a>
+
+    <a href="/admin/settings" class="action-card">
+        <div class="action-icon action-icon-green">🔧</div>
+        <div class="action-title">系统设置</div>
+        <div class="action-desc">调整TopN、阈值、颜色等系统参数</div>
+    </a>
+
+    <a href="/admin/status" class="action-card">
+        <div class="action-icon action-icon-orange">📈</div>
+        <div class="action-title">系统状态</div>
+        <div class="action-desc">监控数据库、Redis、Celery健康状态</div>
+    </a>
+
+    <a href="/admin/usage" class="action-card">
+        <div class="action-icon action-icon-cyan">💰</div>
+        <div class="action-title">费用统计</div>
+        <div class="action-desc">查看各LLM提供商的使用量和成本</div>
+    </a>
+
+    <a href="/admin/audit" class="action-card">
+        <div class="action-icon action-icon-red">📝</div>
+        <div class="action-title">操作审计</div>
+        <div class="action-desc">查看管理员操作日志和系统事件</div>
+    </a>
+</div>
+
+<!-- 系统信息 -->
+<div class="info-section">
+    <div class="info-section-title">
+        <span>📊</span>
+        <span>系统概览</span>
+    </div>
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">系统版本</div>
+            <div class="info-value">V4.0</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">运行环境</div>
+            <div class="info-value">生产</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">数据库状态</div>
+            <div class="info-value" style="color: #10b981;">●正常</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Redis状态</div>
+            <div class="info-value" style="color: #10b981;">●正常</div>
+        </div>
+    </div>
+</div>
+
+<!-- 提示信息 -->
+<div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 1rem 1.25rem; border-radius: 8px;">
+    <div style="font-weight: 600; color: #1e40af; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💡</span>
+        <span>管理提示</span>
+    </div>
+    <div style="color: #1e40af; font-size: 0.875rem;">
+        作为管理员，您可以配置系统参数、管理数据源和用户、监控系统状态。请谨慎操作，重要修改建议先备份数据。
+    </div>
+</div>
+
+{% endblock %}
