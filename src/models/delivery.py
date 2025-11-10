@@ -26,7 +26,7 @@ class ReportRecipient(Base, TimestampMixin):
     __tablename__ = "report_recipients"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String(200), nullable=False, unique=True, comment="邮箱地址")
+    email = Column(String(200), nullable=False, comment="邮箱地址")
     display_name = Column(String(100), nullable=True, comment="显示名称")
     type = Column(SQLEnum(RecipientType, native_enum=True, values_callable=lambda x: [e.value for e in x]), default=RecipientType.RECIPIENT, nullable=False, comment="类型")
     enabled = Column(Boolean, default=True, nullable=False, comment="是否启用")
@@ -34,6 +34,7 @@ class ReportRecipient(Base, TimestampMixin):
     __table_args__ = (
         Index("idx_recipients_email", "email"),
         Index("idx_recipients_type_enabled", "type", "enabled"),
+        Index("idx_recipients_email_type", "email", "type", unique=True),
     )
 
     def __repr__(self):

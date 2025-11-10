@@ -44,6 +44,7 @@ def _log_audit(db: Session, admin: User, action: str, resource_type: str, resour
 async def admin_recipients_page(
     request: Request,
     recipient_type: Optional[str] = Query(default=None, description="recipient | whitelist"),
+    success: Optional[str] = Query(default=None, description="success message"),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -68,7 +69,8 @@ async def admin_recipients_page(
             "current_user": current_user,
             "recipients": recipients,
             "filter_type": recipient_type,
-            "page_title": "收件人管理"
+            "page_title": "收件人管理",
+            "success_message": success
         }
     )
 
@@ -98,10 +100,14 @@ async def create_recipient(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid type: {recipient_type}")
 
-    # 检查是否已存在
-    existing = db.query(ReportRecipient).filter(ReportRecipient.email == normalized_email).first()
+    # 检查该邮箱的该类型是否已存在
+    existing = db.query(ReportRecipient).filter(
+        ReportRecipient.email == normalized_email,
+        ReportRecipient.type == type_enum
+    ).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+        type_label = "收件人" if type_enum == RecipientType.RECIPIENT else "白名单"
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"该邮箱已作为{type_label}存在")
 
     # 创建记录
     recipient = ReportRecipient(
@@ -128,7 +134,11 @@ async def create_recipient(
 
     db.commit()
 
-    return RedirectResponse(url="/admin/recipients", status_code=status.HTTP_303_SEE_OTHER)
+    # 添加成功消息
+    type_label = "收件人" if type_enum == RecipientType.RECIPIENT else "白名单"
+    from urllib.parse import quote
+    success_msg = quote(f"✓ 成功添加{type_label}: {normalized_email}")
+    return RedirectResponse(url=f"/admin/recipients?success={success_msg}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/{recipient_id}/update")

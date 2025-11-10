@@ -217,6 +217,28 @@
     <div class="recipients-subtitle">管理报告收件人和登录白名单</div>
 </div>
 
+<!-- 成功消息 -->
+{% if success_message %}
+<div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;" id="success-alert">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.25rem;">✓</span>
+        <span style="font-weight: 600; color: #065f46;">{{ success_message }}</span>
+    </div>
+    <button onclick="document.getElementById('success-alert').remove()" style="background: none; border: none; color: #065f46; font-size: 1.25rem; cursor: pointer; padding: 0 0.5rem;">×</button>
+</div>
+<script>
+    // 3秒后自动隐藏成功消息
+    setTimeout(() => {
+        const alert = document.getElementById('success-alert');
+        if (alert) {
+            alert.style.transition = 'opacity 0.3s';
+            alert.style.opacity = '0';
+            setTimeout(() => alert.remove(), 300);
+        }
+    }, 3000);
+</script>
+{% endif %}
+
 <!-- 筛选标签 -->
 <div class="filter-tabs">
     <a href="/admin/recipients" class="filter-tab {% if not filter_type %}filter-tab-active{% else %}filter-tab-inactive{% endif %}">
