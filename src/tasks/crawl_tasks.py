@@ -18,12 +18,41 @@ from src.crawlers.base import BaseCrawler
 from src.crawlers.deduplicator import Deduplicator
 from src.crawlers.rss_crawler import RSSCrawler
 from src.crawlers.static_crawler import StaticCrawler
+from src.crawlers.dynamic_crawler import DynamicCrawler
+from src.crawlers.browser_pool import BrowserPool
 from src.db.session import get_db
 from src.models.article import Article, ProcessingStatus
 from src.models.extraction import ExtractionQueue, QueueStatus
 from src.models.source import Source, SourceType
 from src.tasks.celery_app import celery_app
 from src.utils.time_utils import get_local_now, to_local_naive
+from src.config.settings import settings
+
+
+# 全局浏览器池实例（单例模式）
+_browser_pool: Optional[BrowserPool] = None
+
+
+def get_browser_pool() -> BrowserPool:
+    """获取或创建浏览器池单例"""
+    import asyncio
+
+    global _browser_pool
+    if _browser_pool is None:
+        logger.info("初始化浏览器池...")
+        _browser_pool = BrowserPool(
+            max_contexts=getattr(settings, 'PLAYWRIGHT_MAX_BROWSERS', 5),
+            headless=getattr(settings, 'PLAYWRIGHT_HEADLESS', True)
+        )
+        # 启动浏览器
+        try:
+            asyncio.run(_browser_pool.start())
+            logger.success("浏览器池启动成功")
+        except Exception as e:
+            logger.error(f"浏览器池启动失败: {e}")
+            _browser_pool = None
+            raise
+    return _browser_pool
 
 
 def _get_db_session() -> Session:
@@ -43,10 +72,23 @@ def _load_source(db: Session, source_id: int) -> Optional[Source]:
 def _build_crawler(source: Source) -> Optional[BaseCrawler]:
     """根据信息源类型构建对应的采集器。"""
     parser = getattr(source, "parser", None)
+    parser_config = getattr(source, "parser_config", None) or {}
+
     if source.type == SourceType.RSS:
         return RSSCrawler(source.id, source.name, source.url, parser)
     if source.type == SourceType.STATIC:
         return StaticCrawler(source.id, source.name, source.url, parser)
+    if source.type == SourceType.DYNAMIC:
+        # 获取浏览器池
+        browser_pool = get_browser_pool()
+        return DynamicCrawler(
+            source.id,
+            source.name,
+            source.url,
+            browser_pool,
+            parser=parser,
+            parser_config=parser_config
+        )
 
     logger.warning(f"暂不支持的信息源类型: {source.type}")
     return None
@@ -297,9 +339,30 @@ def crawl_static_task(source_id: int) -> Dict:
 
 @celery_app.task(name="src.tasks.crawl_tasks.crawl_dynamic_task")
 def crawl_dynamic_task(source_id: int) -> Dict:
+    """采集动态网页信息源（Playwright）。"""
+    return _run_crawl(source_id, expected_type=SourceType.DYNAMIC)
+
+
+@celery_app.task(name="src.tasks.crawl_tasks.cleanup_browser_pool")
+def cleanup_browser_pool() -> Dict:
     """
-    采集动态网页信息源。
-    目前暂未实现，先返回跳过状态，后续接入 Playwright。
+    清理浏览器池任务（定时任务，用于释放资源）
+    可配置在每天凌晨执行一次
     """
-    logger.warning(f"动态采集尚未实现，跳过 source_id={source_id}")
-    return {"status": "skipped", "source_id": source_id, "reason": "dynamic_crawler_not_implemented"}
+    import asyncio
+
+    global _browser_pool
+
+    try:
+        if _browser_pool is not None:
+            logger.info("开始清理浏览器池...")
+            asyncio.run(_browser_pool.close())
+            _browser_pool = None
+            logger.success("浏览器池已清理")
+            return {"status": "success", "message": "Browser pool cleaned"}
+        else:
+            logger.info("浏览器池未初始化，无需清理")
+            return {"status": "success", "message": "Browser pool not initialized"}
+    except Exception as e:
+        logger.error(f"清理浏览器池失败: {e}")
+        return {"status": "error", "message": str(e)}

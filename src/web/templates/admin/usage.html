@@ -225,35 +225,23 @@
 <!-- 费用概览 -->
 <div class="cost-summary">
     <div class="cost-card">
-        <div class="cost-label">本月总费用</div>
-        <div class="cost-value">¥156.78</div>
-        <div class="cost-change change-up">
-            ↑ 较上月 +12.5%
-        </div>
+        <div class="cost-label">统计周期总费用</div>
+        <div class="cost-value">¥{{ "%.2f"|format(total_stats.total_cost) }}</div>
     </div>
 
     <div class="cost-card">
         <div class="cost-label">总Token消耗</div>
-        <div class="cost-value">2.3M</div>
-        <div class="cost-change change-up">
-            ↑ 较上月 +8.2%
-        </div>
+        <div class="cost-value">{{ "%.1fK"|format(total_stats.total_tokens / 1000) if total_stats.total_tokens < 1000000 else "%.1fM"|format(total_stats.total_tokens / 1000000) }}</div>
     </div>
 
     <div class="cost-card">
         <div class="cost-label">API调用次数</div>
-        <div class="cost-value">1,234</div>
-        <div class="cost-change change-down">
-            ↓ 较上月 -3.1%
-        </div>
+        <div class="cost-value">{{ "{:,}".format(total_stats.call_count) }}</div>
     </div>
 
     <div class="cost-card">
         <div class="cost-label">平均单次成本</div>
-        <div class="cost-value">¥0.13</div>
-        <div class="cost-change change-up">
-            ↑ 较上月 +5.8%
-        </div>
+        <div class="cost-value">¥{{ "%.4f"|format(total_stats.total_cost / total_stats.call_count) if total_stats.call_count > 0 else "0.00" }}</div>
     </div>
 </div>
 
@@ -264,161 +252,111 @@
         <span>提供商明细</span>
     </div>
 
-    <!-- OpenAI -->
-    <div class="provider-item">
-        <div class="provider-top">
-            <div>
-                <div class="provider-name">🟢 OpenAI</div>
-                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
-                    GPT-4 & GPT-3.5 系列
+    {% if providers %}
+        {% for provider in providers %}
+        <div class="provider-item">
+            <div class="provider-top">
+                <div>
+                    <div class="provider-name">
+                        {% if provider.name == "openai" %}🟢
+                        {% elif provider.name == "anthropic" %}🟣
+                        {% elif provider.name == "deepseek" %}🔵
+                        {% elif provider.name == "qwen" %}🟠
+                        {% else %}⚪
+                        {% endif %}
+                        {{ provider.name|title }}
+                    </div>
+                    <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
+                        {% if provider.models|length == 1 %}
+                            {{ provider.models[0].name }}
+                        {% else %}
+                            {{ provider.models|length }} 个模型
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="provider-cost">¥{{ "%.2f"|format(provider.cost) }}</div>
+            </div>
+
+            <div class="provider-metrics">
+                <div class="metric-item">
+                    <div class="metric-label">Token消耗</div>
+                    <div class="metric-value">
+                        {% if provider.total_tokens < 1000 %}
+                            {{ provider.total_tokens }}
+                        {% elif provider.total_tokens < 1000000 %}
+                            {{ "%.1fK"|format(provider.total_tokens / 1000) }}
+                        {% else %}
+                            {{ "%.1fM"|format(provider.total_tokens / 1000000) }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">API调用</div>
+                    <div class="metric-value">{{ "{:,}".format(provider.call_count) }}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">输入Token</div>
+                    <div class="metric-value">
+                        {% if provider.prompt_tokens < 1000 %}
+                            {{ provider.prompt_tokens }}
+                        {% elif provider.prompt_tokens < 1000000 %}
+                            {{ "%.1fK"|format(provider.prompt_tokens / 1000) }}
+                        {% else %}
+                            {{ "%.1fM"|format(provider.prompt_tokens / 1000000) }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">输出Token</div>
+                    <div class="metric-value">
+                        {% if provider.completion_tokens < 1000 %}
+                            {{ provider.completion_tokens }}
+                        {% elif provider.completion_tokens < 1000000 %}
+                            {{ "%.1fK"|format(provider.completion_tokens / 1000) }}
+                        {% else %}
+                            {{ "%.1fM"|format(provider.completion_tokens / 1000000) }}
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            <div class="provider-cost">¥98.50</div>
-        </div>
 
-        <div class="provider-metrics">
-            <div class="metric-item">
-                <div class="metric-label">Token消耗</div>
-                <div class="metric-value">1.2M</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">API调用</div>
-                <div class="metric-value">685</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">平均延迟</div>
-                <div class="metric-value">1.2s</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">成功率</div>
-                <div class="metric-value">99.1%</div>
-            </div>
-        </div>
-
-        <div style="margin-top: 1rem;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 62.8%</div>
-            <div class="usage-bar">
-                <div class="usage-bar-fill" style="width: 62.8%;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Anthropic -->
-    <div class="provider-item">
-        <div class="provider-top">
-            <div>
-                <div class="provider-name">🟣 Anthropic</div>
-                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
-                    Claude 系列
+            <div style="margin-top: 1rem;">
+                {% set usage_percent = (provider.cost / total_stats.total_cost * 100) if total_stats.total_cost > 0 else 0 %}
+                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">费用占比: {{ "%.1f"|format(usage_percent) }}%</div>
+                <div class="usage-bar">
+                    <div class="usage-bar-fill" style="width: {{ usage_percent }}%;"></div>
                 </div>
             </div>
-            <div class="provider-cost">¥42.30</div>
-        </div>
 
-        <div class="provider-metrics">
-            <div class="metric-item">
-                <div class="metric-label">Token消耗</div>
-                <div class="metric-value">680K</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">API调用</div>
-                <div class="metric-value">320</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">平均延迟</div>
-                <div class="metric-value">0.9s</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">成功率</div>
-                <div class="metric-value">99.7%</div>
-            </div>
-        </div>
-
-        <div style="margin-top: 1rem;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 27.0%</div>
-            <div class="usage-bar">
-                <div class="usage-bar-fill" style="width: 27.0%;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- DeepSeek -->
-    <div class="provider-item">
-        <div class="provider-top">
-            <div>
-                <div class="provider-name">🔵 DeepSeek</div>
-                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
-                    DeepSeek Chat
+            <!-- 显示模型详情 -->
+            {% if provider.models|length > 1 %}
+            <details style="margin-top: 1rem;">
+                <summary style="cursor: pointer; color: #2563eb; font-size: 0.875rem; font-weight: 500;">
+                    查看模型明细 ({{ provider.models|length }} 个)
+                </summary>
+                <div style="margin-top: 0.75rem; padding-left: 1rem; border-left: 2px solid #e2e8f0;">
+                    {% for model in provider.models %}
+                    <div style="padding: 0.5rem 0; font-size: 0.8125rem;">
+                        <div style="font-weight: 600; color: #0f172a;">{{ model.name }}</div>
+                        <div style="color: #64748b; margin-top: 0.25rem;">
+                            Tokens: {{ "{:,}".format(model.total_tokens) }} |
+                            调用: {{ model.call_count }} 次 |
+                            费用: ¥{{ "%.2f"|format(model.cost) }}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-            </div>
-            <div class="provider-cost">¥12.80</div>
+            </details>
+            {% endif %}
         </div>
-
-        <div class="provider-metrics">
-            <div class="metric-item">
-                <div class="metric-label">Token消耗</div>
-                <div class="metric-value">320K</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">API调用</div>
-                <div class="metric-value">180</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">平均延迟</div>
-                <div class="metric-value">0.7s</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">成功率</div>
-                <div class="metric-value">98.9%</div>
-            </div>
+        {% endfor %}
+    {% else %}
+        <div style="padding: 3rem; text-align: center; color: #64748b;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <div style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">暂无使用数据</div>
+            <div style="font-size: 0.875rem;">选择的时间范围内未产生任何LLM API调用</div>
         </div>
-
-        <div style="margin-top: 1rem;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 8.2%</div>
-            <div class="usage-bar">
-                <div class="usage-bar-fill" style="width: 8.2%;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 智谱AI -->
-    <div class="provider-item">
-        <div class="provider-top">
-            <div>
-                <div class="provider-name">🟡 智谱AI</div>
-                <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
-                    GLM 系列
-                </div>
-            </div>
-            <div class="provider-cost">¥3.18</div>
-        </div>
-
-        <div class="provider-metrics">
-            <div class="metric-item">
-                <div class="metric-label">Token消耗</div>
-                <div class="metric-value">120K</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">API调用</div>
-                <div class="metric-value">49</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">平均延迟</div>
-                <div class="metric-value">0.5s</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">成功率</div>
-                <div class="metric-value">100%</div>
-            </div>
-        </div>
-
-        <div style="margin-top: 1rem;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">使用占比: 2.0%</div>
-            <div class="usage-bar">
-                <div class="usage-bar-fill" style="width: 2.0%;"></div>
-            </div>
-        </div>
-    </div>
+    {% endif %}
 </div>
 
 <!-- 提示信息 -->

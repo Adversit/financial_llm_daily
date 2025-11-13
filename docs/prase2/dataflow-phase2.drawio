@@ -1,0 +1,356 @@
+<mxfile host="app.diagrams.net" modified="2025-01-11T00:00:00.000Z" agent="Claude Code" version="24.0.0">
+  <diagram name="数据流程图-Phase2" id="dataflow-phase2">
+    <mxGraphModel dx="1434" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 标题 -->
+        <mxCell id="title" value="金融情报日报系统 V4 - 数据流程图 (每日05:30自动触发)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 步骤0: 定时触发 -->
+        <mxCell id="step0-title" value="【步骤0】定时调度 (05:30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="celery-beat" value="&lt;b&gt;Celery Beat&lt;/b&gt;&lt;br&gt;crontab(hour=5, minute=30)&lt;br&gt;&lt;br&gt;触发 run_daily_report 任务" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 步骤1: 采集阶段 -->
+        <mxCell id="step1-title" value="【步骤1】并发采集阶段 (05:30-05:35, ~5分钟)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sources-db" value="&lt;b&gt;sources 表&lt;/b&gt;&lt;br&gt;(PostgreSQL)&lt;br&gt;&lt;br&gt;enabled=true 的信息源&lt;br&gt;type: RSS/STATIC/DYNAMIC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crawl-group" value="&lt;b&gt;并发采集任务组&lt;/b&gt;&lt;br&gt;(Celery group)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="320" y="280" width="760" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crawl-rss" value="&lt;b&gt;crawl_rss_task&lt;/b&gt;&lt;br&gt;&lt;br&gt;• feedparser解析RSS&lt;br&gt;• 提取标题/链接/时间&lt;br&gt;• 并发度=10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="crawl-group">
+          <mxGeometry x="20" y="50" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crawl-static" value="&lt;b&gt;crawl_static_task&lt;/b&gt;&lt;br&gt;&lt;br&gt;• requests获取页面&lt;br&gt;• BeautifulSoup解析&lt;br&gt;• trafilatura提取正文&lt;br&gt;• 并发度=2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="crawl-group">
+          <mxGeometry x="270" y="50" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dedup" value="&lt;b&gt;SimHash去重&lt;/b&gt;&lt;br&gt;&lt;br&gt;• jieba分词&lt;br&gt;• 64位Hash&lt;br&gt;• 汉明距离≤3判重" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="crawl-group">
+          <mxGeometry x="520" y="50" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crawl-output" value="&lt;b&gt;采集输出&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="280" width="440" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="articles-table" value="&lt;b&gt;articles 表&lt;/b&gt;&lt;br&gt;&lt;br&gt;• 文章ID&lt;br&gt;• source_id&lt;br&gt;• title, url, content_text&lt;br&gt;• published_at&lt;br&gt;• simhash&lt;br&gt;• processing_status=RAW" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="crawl-output">
+          <mxGeometry x="20" y="50" width="180" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="queue-table" value="&lt;b&gt;extraction_queue 表&lt;/b&gt;&lt;br&gt;&lt;br&gt;• article_id&lt;br&gt;• status=QUEUED&lt;br&gt;• priority&lt;br&gt;• provider_hint&lt;br&gt;• attempts=0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="crawl-output">
+          <mxGeometry x="230" y="50" width="190" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- 步骤2: 抽取阶段 -->
+        <mxCell id="step2-title" value="【步骤2】LLM批量抽取阶段 (05:35-05:40, ~5分钟)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extract-batch" value="&lt;b&gt;run_extraction_batch&lt;/b&gt;&lt;br&gt;读取 extraction_queue&lt;br&gt;status=QUEUED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="540" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extract-process" value="&lt;b&gt;串行/并行处理&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="360" y="540" width="720" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extract-article" value="&lt;b&gt;extract_article_task&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. 检测文章长度&lt;br&gt;2. 分块策略 (chunking.py)&lt;br&gt;   - DeepSeek: 64K*70%&lt;br&gt;   - 最多8块, 重叠200字&lt;br&gt;3. Provider路由" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="extract-process">
+          <mxGeometry x="20" y="50" width="320" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="llm-providers" value="&lt;b&gt;LLM Provider调用&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;startSize=25;" vertex="1" parent="extract-process">
+          <mxGeometry x="370" y="50" width="330" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="deepseek-call" value="&lt;b&gt;DeepSeek (主)&lt;/b&gt;&lt;br&gt;&lt;br&gt;POST /v1/chat/completions&lt;br&gt;model: deepseek-chat&lt;br&gt;temperature: 0.3&lt;br&gt;timeout: 90s&lt;br&gt;max_retries: 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="llm-providers">
+          <mxGeometry x="15" y="35" width="140" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qwen-call" value="&lt;b&gt;Qwen (备)&lt;/b&gt;&lt;br&gt;&lt;br&gt;POST /v1/chat/completions&lt;br&gt;model: qwen-max&lt;br&gt;自动回退&lt;br&gt;(超时/HTTP错误)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;dashed=1;" vertex="1" parent="llm-providers">
+          <mxGeometry x="175" y="35" width="140" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extract-output" value="&lt;b&gt;抽取输出&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="540" width="440" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extraction-items" value="&lt;b&gt;extraction_items 表&lt;/b&gt;&lt;br&gt;&lt;br&gt;• article_id&lt;br&gt;• fact (事实)&lt;br&gt;• opinion (观点)&lt;br&gt;• region (国内/国外/未知)&lt;br&gt;• layer (4层分类)&lt;br&gt;• confidence (0.0-1.0)&lt;br&gt;• finance_relevance (0.0-1.0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="extract-output">
+          <mxGeometry x="20" y="50" width="190" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="provider-usage" value="&lt;b&gt;provider_usage 表&lt;/b&gt;&lt;br&gt;&lt;br&gt;• provider_name&lt;br&gt;• model_name&lt;br&gt;• article_id&lt;br&gt;• prompt_tokens&lt;br&gt;• completion_tokens&lt;br&gt;• cost (¥)&lt;br&gt;• created_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="extract-output">
+          <mxGeometry x="230" y="50" width="190" height="190" as="geometry" />
+        </mxCell>
+
+        <!-- 步骤3: 报告生成阶段 -->
+        <mxCell id="step3-title" value="【步骤3】报告生成阶段 (05:40-05:42, ~2分钟)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="840" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="build-report" value="&lt;b&gt;build_report_task&lt;/b&gt;&lt;br&gt;读取 extraction_items&lt;br&gt;按 report_date 过滤" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="880" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="composer-process" value="&lt;b&gt;报告组装流程&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="360" y="880" width="720" height="300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="filter-score" value="&lt;b&gt;1. 过滤与评分 (scorer.py)&lt;/b&gt;&lt;br&gt;&lt;br&gt;• 置信度 &gt;= 0.6&lt;br&gt;• 金融相关性过滤&lt;br&gt;• 最小内容长度 &gt;= 120字&lt;br&gt;• 去除低质量条目" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="composer-process">
+          <mxGeometry x="20" y="50" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="partition-sort" value="&lt;b&gt;2. 分区排序&lt;/b&gt;&lt;br&gt;&lt;br&gt;• region × layer = 8个分区&lt;br&gt;  - 国内: 4层&lt;br&gt;  - 国外: 4层&lt;br&gt;• 按置信度降序排序&lt;br&gt;• 选取TopN (默认5条/分区)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="composer-process">
+          <mxGeometry x="270" y="50" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="html-build" value="&lt;b&gt;3. HTML构建 (builder.py)&lt;/b&gt;&lt;br&gt;&lt;br&gt;• Jinja2渲染模板&lt;br&gt;• 邮件正文 (TopN预览)&lt;br&gt;• HTML附件 (完整列表)&lt;br&gt;• sections_json统计" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="composer-process">
+          <mxGeometry x="510" y="50" width="190" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="layer-explain" value="&lt;b&gt;4层分类&lt;/b&gt;&lt;br&gt;L1: 金融政策监管&lt;br&gt;L2: 金融经济&lt;br&gt;L3: 金融大模型技术&lt;br&gt;L4: 金融科技应用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="composer-process">
+          <mxGeometry x="20" y="180" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="template-files" value="&lt;b&gt;Jinja2模板&lt;/b&gt;&lt;br&gt;• report_email.html (正文)&lt;br&gt;• report_attachment.html (附件)&lt;br&gt;• CSS内联样式&lt;br&gt;• 响应式设计" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="composer-process">
+          <mxGeometry x="270" y="180" width="210" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="report-meta" value="&lt;b&gt;build_meta 统计&lt;/b&gt;&lt;br&gt;• total_items&lt;br&gt;• filtered_count&lt;br&gt;• sections_breakdown&lt;br&gt;• build_duration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="composer-process">
+          <mxGeometry x="510" y="180" width="190" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="report-output" value="&lt;b&gt;reports 表&lt;/b&gt;&lt;br&gt;&lt;br&gt;• id&lt;br&gt;• report_date&lt;br&gt;• html_body (邮件正文)&lt;br&gt;• html_attachment (完整附件)&lt;br&gt;• sections_json&lt;br&gt;• build_meta&lt;br&gt;• created_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="880" width="440" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- 步骤4: 邮件投递阶段 -->
+        <mxCell id="step4-title" value="【步骤4】邮件投递阶段 (05:42-06:00, ~18分钟)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="1220" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="send-report" value="&lt;b&gt;send_report_task&lt;/b&gt;&lt;br&gt;读取 reports 表&lt;br&gt;按 report_date 查询" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1260" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mail-process" value="&lt;b&gt;邮件发送流程&lt;/b&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1260" width="720" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="read-recipients" value="&lt;b&gt;1. 读取收件人&lt;/b&gt;&lt;br&gt;&lt;br&gt;• report_recipients&lt;br&gt;• type=WHITELIST+RECIPIENT&lt;br&gt;• enabled=true&lt;br&gt;• 白名单复合约束" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="mail-process">
+          <mxGeometry x="20" y="50" width="160" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="batch-split" value="&lt;b&gt;2. 分批处理 (batcher.py)&lt;/b&gt;&lt;br&gt;&lt;br&gt;• 第一封: To第一人, 其余BCC&lt;br&gt;• 后续封: 全部BCC&lt;br&gt;• 批次大小: ≤50人/封&lt;br&gt;• recipients_snapshot备份" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="mail-process">
+          <mxGeometry x="200" y="50" width="180" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="smtp-send" value="&lt;b&gt;3. SMTP发送&lt;/b&gt;&lt;br&gt;&lt;br&gt;• aiosmtplib异步&lt;br&gt;• SSL连接 (465端口)&lt;br&gt;• 节流: 1封/秒&lt;br&gt;• 失败重试 (最多2次)&lt;br&gt;• 指数退避" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="mail-process">
+          <mxGeometry x="400" y="50" width="140" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="track-message" value="&lt;b&gt;4. 记录投递日志&lt;/b&gt;&lt;br&gt;&lt;br&gt;• delivery_log&lt;br&gt;• message_id&lt;br&gt;• status (OK/FAILED)&lt;br&gt;• error_msg" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="mail-process">
+          <mxGeometry x="560" y="50" width="140" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="delivery-output" value="&lt;b&gt;delivery_log 表&lt;/b&gt;&lt;br&gt;&lt;br&gt;• id&lt;br&gt;• report_id&lt;br&gt;• batch_no&lt;br&gt;• recipients_snapshot (JSON)&lt;br&gt;• status (OK/FAILED/PARTIAL)&lt;br&gt;• message_id&lt;br&gt;• error_msg&lt;br&gt;• sent_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="1260" width="440" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- 主流程箭头 -->
+        <mxCell id="flow-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#b85450;" edge="1" parent="1" source="celery-beat" target="sources-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#d6b656;" edge="1" parent="1" source="sources-db" target="crawl-group">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#d6b656;" edge="1" parent="1" source="crawl-group" target="crawl-output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#6c8ebf;" edge="1" parent="1" source="queue-table" target="extract-batch">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="480" />
+              <mxPoint x="200" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#6c8ebf;" edge="1" parent="1" source="extract-batch" target="extract-process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#6c8ebf;" edge="1" parent="1" source="extract-process" target="extract-output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="extraction-items" target="build-report">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1215" y="820" />
+              <mxPoint x="200" y="820" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="build-report" target="composer-process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="composer-process" target="report-output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="report-output" target="send-report">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1340" y="1200" />
+              <mxPoint x="200" y="1200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-arrow11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="send-report" target="mail-process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-arrow12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="mail-process" target="delivery-output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 内部流程箭头 -->
+        <mxCell id="internal-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1" source="crawl-rss" target="dedup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1" source="crawl-static" target="dedup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="extract-article" target="deepseek-call">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="deepseek-call" target="qwen-call">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="filter-score" target="partition-sort">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="partition-sort" target="html-build">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="read-recipients" target="batch-split">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="batch-split" target="smtp-send">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-arrow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="smtp-send" target="track-message">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 时间线标注 -->
+        <mxCell id="timeline" value="时间线" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="100" width="180" height="360" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time1" value="05:30 - 定时触发" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="40" width="160" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time2" value="05:30-05:35 - 采集" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="75" width="160" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time3" value="05:35-05:40 - LLM抽取" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="110" width="160" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time4" value="05:40-05:42 - 报告生成" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="145" width="160" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time5" value="05:42-06:00 - 邮件投递" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="180" width="160" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time6" value="06:00 - 完成" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontColor=#009900" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="215" width="160" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time-total" value="总耗时: ~30分钟" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=14;fontColor=#cc0000" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="260" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="time-note" value="(可根据文章数量和&lt;br&gt;LLM响应速度调整)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="timeline">
+          <mxGeometry x="10" y="295" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 数据库表图例 -->
+        <mxCell id="db-legend" value="数据库表清单" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="500" width="180" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db1" value="sources (信息源配置)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="40" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db2" value="articles (文章)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="65" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db3" value="extraction_queue (抽取队列)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="90" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db4" value="extraction_items (事实观点)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="115" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db5" value="reports (报告)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="140" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db6" value="delivery_log (投递日志)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="165" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db7" value="provider_usage (LLM费用)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="190" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db8" value="report_recipients (收件人)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="215" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db9" value="users (用户)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="db-legend">
+          <mxGeometry x="10" y="240" width="160" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

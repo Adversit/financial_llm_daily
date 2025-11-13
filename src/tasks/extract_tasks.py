@@ -26,6 +26,29 @@ from src.tasks.celery_app import celery_app
 from src.utils.time_utils import get_local_now_naive
 
 
+def calculate_llm_cost(
+    provider: str,
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> float:
+    """
+    计算LLM使用费用(使用配置化的定价)
+
+    Args:
+        provider: Provider名称 (deepseek, qwen等)
+        model: 模型名称 (deepseek-chat, qwen-max等)
+        prompt_tokens: 输入Token数
+        completion_tokens: 输出Token数
+
+    Returns:
+        费用（人民币元）
+    """
+    from src.utils.cost_calculator import calculate_cost
+
+    return calculate_cost(provider, model, prompt_tokens, completion_tokens)
+
+
 def log_provider_usage(
     db: Session,
     provider: str,
@@ -157,27 +180,51 @@ def extract_article_task(self, article_id: int) -> dict:
             queue_item.processing_finished_at = get_local_now_naive()
             queue_item.last_error = None
 
-            # 6. 更新文章处理状态
+            # 6. 更新文章处理状态和关键词
             article = db.query(Article).filter(Article.id == article_id).first()
             if article:
                 article.processing_status = ProcessingStatus.DONE
+                # 保存关键词(如果有)
+                if result.keywords:
+                    article.keywords = result.keywords
+                    logger.info(f"保存文章关键词: {result.keywords}")
 
             db.commit()
 
             # 7. 记录 Provider 使用情况
             usage = result.metadata.get("usage", {})
             if usage:
-                # 估算费用（需要根据实际 Provider 价格计算）
-                # DeepSeek: ¥0.001/1K tokens (示例)
-                total_tokens = usage.get("total_tokens", 0)
-                cost = (total_tokens / 1000) * 0.001
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+
+                # 获取实际使用的provider (从metadata获取,如果没有则默认为deepseek)
+                provider_used = result.metadata.get("provider", "deepseek")
+
+                # 获取模型名称，根据provider设置默认值
+                model_used = result.metadata.get("model")
+                if not model_used:
+                    # 根据provider选择默认模型
+                    if provider_used.lower() == "deepseek":
+                        model_used = settings.PROVIDER_DEEPSEEK_MODEL
+                    elif provider_used.lower() == "qwen":
+                        model_used = settings.PROVIDER_QWEN_MODEL
+                    else:
+                        model_used = settings.PROVIDER_DEEPSEEK_MODEL  # 最终兜底
+
+                # 使用统一的费用计算函数
+                cost = calculate_llm_cost(
+                    provider=provider_used,
+                    model=model_used,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                )
 
                 log_provider_usage(
                     db=db,
-                    provider="deepseek",  # 实际应从 metadata 获取
-                    model=settings.PROVIDER_DEEPSEEK_MODEL,
-                    prompt_tokens=usage.get("prompt_tokens", 0),
-                    completion_tokens=usage.get("completion_tokens", 0),
+                    provider=provider_used,
+                    model=model_used,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
                     cost=cost,
                 )
 

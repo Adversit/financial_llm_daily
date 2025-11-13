@@ -1,101 +1,115 @@
-# 金融情报日报系统 v1.0 (MVP)
+# 金融情报日报系统 v4
 
-## 项目简介
+> 自动化完成“采集 → 抽取 → 成稿 → 邮件投递”的金融情报日报平台,目标是在每天 06:20 前产出可追溯的多源情报。
 
-金融情报日报系统是一个自动化的信息采集、处理和投递平台,每日自动从多个信息源采集金融相关资讯,通过LLM提取关键事实和观点,生成结构化报告并通过邮件投递给订阅用户。
+## 功能亮点
 
-### 核心功能
+- **多源采集编排**: 支持 RSS、静态网页与 Playwright 动态渲染, `Deduplicator`+SimHash 去重, 统一写入 `articles + extraction_queue`。
+- **LLM 抽取与降级策略**: `src/nlp/extractor.py` 以 DeepSeek → Qwen 回退, 配置化 chunk budget/overlap/max chunks, `calculate_llm_cost()` 追踪实际 Provider/模型消费。
+- **智能成稿与附件**: `src/composer` 对事实打分排序, 生成 HTML 邮件正文 + 全量附件 (region/layer 标签、置信区间、原文链路)。
+- **邮件投递与稽核**: `src/mailer` + `send_report_task` 分批节流 (≤50 人/封, 1 封/秒)、失败重试、退信入库 `delivery_log` 并可后台重发。
+- **Web 管理台与权限控制**: FastAPI + Jinja2 SSR, 管理员密码登录、白名单邮箱+OTP、报告浏览、收件人/信息源/系统设置、偏好提示词等。
+- **可观测性与费用洞察**: `/admin/status` 展示 PostgreSQL/Redis/Celery/Web 实时指标与 30s 刷新的 ECharts 趋势, `/admin/usage` 以真实元数据统计 DeepSeek/Qwen 费用, `/stats/wordcloud` 提供 Redis 缓存的日/周/月词云。
+- **DevOps 友好**: Celery 链式编排(`group→run_extraction_batch→build_report→send_report`)、CLI(`python -m src.cli.run_once`)、`scripts/start_all.sh`、Docker Compose 和完备 PRD/TDD/STARTUP 文档。
 
-- **信息源采集**: 支持RSS订阅、静态网页、动态网页三种采集方式
-- **智能处理**: 基于LLM的事实观点抽取,支持长文分块和降级策略
-- **报告生成**: 自动评分排序,生成HTML格式的日报正文和全量附件
-- **邮件投递**: 分批节流发送,支持重试和退信处理
+## 核心架构
 
-### 技术栈
+```
+浏览器 ──▶ FastAPI (src/web/app.py)
+                │
+                ├── SQLAlchemy → PostgreSQL (sources/articles/reports/usage)
+                ├── Redis 7 (缓存、任务节流、词云)
+                ├── Celery Worker & Beat (src/tasks/*)
+                │       └── SMTP (aiosmtplib) 发送日报
+                └── LLM Providers (DeepSeek/Qwen) via src/nlp/extractor.py
+```
 
-- **后端**: Python 3.12 + FastAPI
-- **数据库**: PostgreSQL 15
-- **缓存/消息队列**: Redis 7
-- **任务调度**: Celery + Celery Beat
-- **LLM**: DeepSeek / Qwen (可配置多Provider回退)
-- **网页采集**: Playwright, Trafilatura, BeautifulSoup
-- **部署**: Docker Compose
+| 目录/模块 | 说明 |
+| --- | --- |
+| `src/config` | Pydantic Settings, 统一 `.env` 配置与默认值 (ENV、LLM 预算、邮件节流等)。 |
+| `src/crawlers` | RSS/静态采集器、爬虫基类、去重策略 (Deduplicator、SimHash)。 |
+| `src/nlp` | LLM 抽取、长文分块、Provider 回退与费用统计。 |
+| `src/composer` | 报告生成、评分、卡片/附件渲染模板。 |
+| `src/mailer` | 邮件正文+附件拼装、批次控制、退信/重试逻辑。 |
+| `src/tasks` | Celery app、采集/抽取/报告/邮件任务与 `orchestrator`。 |
+| `src/web` | FastAPI 路由、Jinja2 模板、Auth/OTP、管理员后台、统计页面。 |
+| `scripts` | 启/停、数据播种、调试、诊断脚本 (如 `start_all.sh`, `seed_test_data.py`)。 |
+| `docs` | PRD、TDD、启动指南、架构/数据流图与更新日志。 |
+
+### 每日调度流水线
+
+1. **06:00** – Celery Beat 触发 `run_daily_report` (`src/tasks/orchestrator.py`), 并发采集启用信息源。
+2. **06:05** – `run_extraction_batch` 依次处理 `extraction_queue`, 记录 LLM provider/模型/状态。
+3. **06:10** – `build_report_task` 生成 HTML 正文与附件, 统计 TopN、总条目与耗时。
+4. **06:12~06:20** – `send_report_task` 读取收件人, 分批发送邮件并写入 `delivery_log`, 可由 CLI/后台重试。
+
+## 技术栈
+
+- Python 3.12 / FastAPI / Uvicorn / Pydantic v2
+- SQLAlchemy 2 + Alembic + PostgreSQL 15
+- Redis 7 + Celery 5 + aiosmtplib
+- Playwright / Trafilatura / BeautifulSoup / SimHash / jieba / wordcloud
+- DeepSeek Chat & Qwen (DashScope 兼容) LLM Providers
+- Jinja2 SSR、OTP 登录、JWT (HttpOnly, SameSite=Lax, 7 天)
+- Docker Compose、Poetry、pytest/pytest-cov、Black/isort/mypy
 
 ## 快速开始
 
 ### 1. 环境要求
+- Windows 10/11 + WSL2 (Ubuntu 20.04+) 或任意 Linux
+- Python 3.11/3.12, Poetry 1.7+
+- Docker & Docker Compose / docker compose plugin
+- PostgreSQL 15, Redis 7 (可由 Docker 提供)
+- SMTP 账号与 DeepSeek/Qwen API Key
+- Playwright 依赖 (`playwright install chromium`)
 
-- Python 3.11+
-- Docker & Docker Compose
-- WSL2 (Windows用户)
-
-### 2. 克隆项目
+### 2. 克隆仓库
 
 ```bash
 git clone <repository-url>
-cd V4
+cd Fin_daily_report/V4
 ```
 
-### 3. 启动依赖服务
+### 3. 启动基础依赖
 
 ```bash
-# 启动 PostgreSQL 和 Redis
-docker-compose up -d
-
-# 查看服务状态
+docker-compose up -d postgres redis
 docker-compose ps
 ```
 
 ### 4. 配置环境变量
 
 ```bash
-# 复制配置模板
 cp .env.example .env
-
-# 编辑 .env 文件,填写必要的配置
-# 必填项:
-# - DATABASE_URL
-# - REDIS_URL
-# - PROVIDER_DEEPSEEK_API_KEY
-# - PROVIDER_QWEN_API_KEY
-# - SMTP_USER
-# - SMTP_PASS
+# 使用你喜欢的编辑器填充 .env
 ```
 
-### 5. 安装Python依赖
+| 变量 | 必填 | 示例 | 说明 |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | ✓ | `postgresql://fin_user:fin_pass@localhost:5432/fin_daily_report` | SQLAlchemy 连接串。 |
+| `REDIS_URL` | ✓ | `redis://localhost:6379/0` | Celery、缓存、词云使用的 Redis。 |
+| `PROVIDER_DEEPSEEK_API_KEY` | ✓ | `sk-xxxx` | DeepSeek Chat Key, Base URL/Model 可在 `.env` 覆盖。 |
+| `PROVIDER_QWEN_API_KEY` | ✓ | `sk-xxxx` | Qwen 兼容模式 Key, 作为 LLM 回退。 |
+| `SMTP_HOST` / `SMTP_PORT` | ✓ | `smtp.163.com` / `465` | SSL SMTP, 可换企业邮。 |
+| `SMTP_USER` / `SMTP_PASS` | ✓ | `user@163.com` / 授权码 | 邮件投递身份。 |
+| `JWT_SECRET_KEY` | ✓ | `change-me` | 生产必须更换, 配合 `JWT_EXPIRE_DAYS`。 |
+| `ENV` / `TZ` | 可选 | `production` / `Asia/Shanghai` | 影响日志与调度。 |
+| `REPORT_TOPN`, `LLM_TIMEOUT_SEC`, `MAIL_BATCH_LIMIT`… | 可选 | 见 `src/config/settings.py` | 可由 `.env` 或后台设置覆盖。 |
 
-**方式一: 使用 Poetry (推荐 - WSL环境)**
+> 完整可配置项请参见 `src/config/settings.py` 与管理员后台“系统设置”。
+
+### 5. 安装 Python 依赖
 
 ```bash
-# 安装 Poetry (如果未安装)
+# Poetry (推荐)
 curl -sSL https://install.python-poetry.org | python3 -
-
-# 配置 Poetry 在项目目录创建虚拟环境
 poetry config virtualenvs.in-project true
-
-# 安装依赖
 poetry install
-
-# 激活虚拟环境
 source .venv/bin/activate
 
-# 安装 Playwright 浏览器
-playwright install chromium
-```
-
-**方式二: 使用 pip**
-
-```bash
-# 创建虚拟环境
+# 或使用 pip
 python -m venv venv
-
-# 激活虚拟环境
-# Windows:
-venv\Scripts\activate
-# Linux/Mac/WSL:
-source venv/bin/activate
-
-# 安装依赖
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 安装 Playwright 浏览器
@@ -105,146 +119,119 @@ playwright install chromium
 ### 6. 初始化数据库
 
 ```bash
-# 执行数据库迁移
 alembic upgrade head
-
-# (可选) 插入测试数据
-python scripts/seed_test_data.py
+python scripts/seed_test_data.py   # 可选: 导入示例信息源/收件人
 ```
 
 ### 7. 启动服务
 
 ```bash
-# 启动 Celery Worker
+# Celery Worker
 celery -A src.tasks.celery_app worker --loglevel=info --concurrency=4
 
-# 启动 Celery Beat (定时任务)
+# Celery Beat (定时任务)
 celery -A src.tasks.celery_app beat --loglevel=info
 
-# 启动 FastAPI (可选,阶段一仅健康检查)
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+# FastAPI / Web 管理台
+uvicorn src.web.app:app --host 0.0.0.0 --port 8000
 ```
 
-## 使用指南
-
-### 手动执行任务
-
-使用CLI工具可以手动触发各个步骤:
+或运行一键脚本 (WSL/Poetry 环境):
 
 ```bash
-# 执行完整流程
-python -m src.cli.run_once --step all
-
-# 仅采集
-python -m src.cli.run_once --step crawl
-
-# 仅LLM抽取
-python -m src.cli.run_once --step extract
-
-# 仅生成报告
-python -m src.cli.run_once --step compose
-
-# 仅发送邮件
-python -m src.cli.run_once --step send
-
-# 指定日期执行
-python -m src.cli.run_once --step extract --date 2025-11-04
+./scripts/start_all.sh
+# 停止所有服务
+./scripts/stop_all.sh
 ```
 
-### 定时任务
+### 8. 健康检查与入口
 
-系统默认配置为每日 06:00 自动执行完整流程:
+- Web 管理台: `http://localhost:8000`
+- 登录: `/login` (默认管理员 `xtyydsf` / `xtyydsf`; 普通用户使用白名单邮箱 + OTP)
+- 报告: `/reports`, `/reports/{date}`
+- API 文档: `/docs`, `/redoc`
+- 健康检查: `/healthz`
+- 管理后台: `/admin`, `/admin/status`, `/admin/usage`
+- 统计/词云: `/stats/wordcloud`
 
-1. 06:00 - 采集信息源
-2. 06:05 - LLM抽取处理
-3. 06:10 - 生成报告
-4. 06:12 - 发送邮件
+## CLI / 手动执行
 
-目标: 06:20 前完成所有任务
+| 命令 | 说明 |
+| --- | --- |
+| `python -m src.cli.run_once --step crawl` | 仅执行采集任务。 |
+| `python -m src.cli.run_once --step extract [--date YYYY-MM-DD]` | 对指定日期队列执行 LLM 抽取。 |
+| `python -m src.cli.run_once --step compose [--date ...]` | 生成日报 (HTML 正文 + 附件)。 |
+| `python -m src.cli.run_once --step send [--date ...] [--force]` | 发送日报, `--force` 可跳过时间窗口限制。 |
+| `python -m src.cli.run_once --step all [--date ...]` | 在同进程内串行执行全流程 (调试/回测)。 |
+
+> CLI 会将 Celery 配置为同步 (`task_always_eager`), 便于本地调试。
+
+## Web 管理台与可视化
+
+- **报告与偏好**: 查看日报列表/详情、下载附件、维护关键词/提示词模板、设置关注/禁用词。
+- **统计 / 词云**: `/stats/wordcloud` 支持日/周/月, Redis 缓存 24h, 可自定义停用词(`SystemSetting`)。
+- **管理员能力**:
+  - 信息源: 启停 RSS/网站源, 调整并发/超时。
+  - 收件人 & 白名单: 管理邮件订阅与 OTP 用户。
+  - 系统设置: 在线修改报告阈值、爬虫并发、LLM 预算、主题色等, 并记录 `AdminAuditLog`。
+  - 系统状态: PostgreSQL 连接/响应时间/数据库大小, Redis 内存/键数量/命中率, Celery 活跃任务 & 今日完成数, Web 数据统计, 内置 ECharts 趋势(30s 自动刷新)。
+  - 费用统计: 基于抽取 metadata 中的 provider/model, 按 Provider/模型展示 token 用量、单价和人民币花费 (DeepSeek/Qwen)。
+
+## 监控、日志与排障
+
+- `logs/web.log`, `logs/celery_worker.log`, `logs/celery_beat.log`: 由 `scripts/start_all.sh` 自动创建, 便于 tail 观察。
+- `docker-compose logs -f postgres|redis` 可检查依赖健康度。
+- `htmlcov/index.html`: `pytest --cov` 后生成的覆盖率报告。
+- 变更记录参见 `docs/update.md` (如 2025-01-09 的系统监控/费用计算增强)。
 
 ## 项目结构
 
 ```
 V4/
-├── src/                    # 源代码
-│   ├── config/            # 配置管理
-│   ├── models/            # 数据模型
-│   ├── db/                # 数据库连接和迁移
-│   ├── crawlers/          # 采集器模块
-│   ├── nlp/               # LLM处理模块
-│   ├── composer/          # 报告生成模块
-│   ├── mailer/            # 邮件投递模块
-│   ├── tasks/             # Celery任务
-│   ├── api/               # FastAPI接口
-│   ├── cli/               # 命令行工具
-│   └── utils/             # 工具函数
-├── tests/                 # 测试用例
-├── docs/                  # 文档
-├── logs/                  # 日志文件
-├── requirements.txt       # Python依赖
-├── docker-compose.yml     # Docker编排
-├── alembic.ini           # Alembic配置
-├── .env                   # 环境变量(不入库)
-└── README.md             # 本文件
+├── src/
+│   ├── api/          # FastAPI 路由入口
+│   ├── cli/          # CLI 工具
+│   ├── composer/     # 报告生成与模板
+│   ├── config/       # Pydantic Settings
+│   ├── crawlers/     # 信息源采集与去重
+│   ├── db/           # 会话 & Alembic 支撑
+│   ├── mailer/       # 邮件发送逻辑
+│   ├── models/       # SQLAlchemy ORM
+│   ├── nlp/          # LLM 抽取策略
+│   ├── tasks/        # Celery 任务与 orchestrator
+│   ├── utils/        # 工具函数
+│   └── web/          # Web 应用、模板、静态资源
+├── scripts/          # start_all、seed_test_data 等脚本
+├── docs/             # PRD/TDD/STARTUP/架构图/更新日志
+├── tests/            # 单元与集成测试
+├── logs/             # 运行日志目录
+├── docker-compose.yml
+├── pyproject.toml / poetry.lock
+└── README.md
 ```
 
-## 数据库表结构
-
-核心表:
-- `sources`: 信息源配置
-- `articles`: 采集的文章
-- `extraction_queue`: 抽取队列
-- `extraction_items`: 抽取结果(事实观点)
-- `reports`: 生成的报告
-- `report_recipients`: 收件人列表
-- `delivery_log`: 投递日志
-- `provider_usage`: LLM用量统计
-
-详见: `docs/TDD-1.md`
-
-## 开发说明
-
-### 运行测试
+## 测试与质量控制
 
 ```bash
-# 运行所有测试
 pytest
-
-# 运行指定模块测试
 pytest tests/test_crawlers/
+pytest --cov=src --cov-report=term-missing --cov-report=html
 
-# 查看覆盖率
-pytest --cov=src --cov-report=html
+# 代码风格
+poetry run black src tests
+poetry run isort src tests
+poetry run mypy src
 ```
 
-### 代码规范
+## 文档与参考
 
-- 遵循 PEP 8
-- 使用 Type Hints
-- 函数和类添加 Docstring
-- 提交前运行测试
-
-### 常见问题
-
-**Q: Playwright 安装失败?**
-A: 确保网络畅通,或使用镜像源安装
-
-**Q: 数据库连接失败?**
-A: 检查 docker-compose 服务是否正常运行,`.env` 配置是否正确
-
-**Q: LLM API 超时?**
-A: 检查网络连接,调整 `LLM_TIMEOUT_SEC` 配置,或启用备用Provider
-
-**Q: 邮件发送失败?**
-A: 检查 SMTP 配置,确认授权码正确,注意发送频率限制
-
-## 文档
-
-- [产品需求文档 (PRD)](docs/PRD.md)
-- [技术设计文档 (TDD)](docs/TDD-1.md)
-- [任务清单](docs/task.md)
-- [架构图](docs/architecture-phase1.drawio)
-- [数据流图](docs/dataflow-phase1.drawio)
+- `docs/PRD.md` – 产品需求文档 (v4)。
+- `docs/TDD-1.md` – 技术设计 & 数据模型细节。
+- `docs/STARTUP_GUIDE.md` – 详细环境/部署指南 (WSL/Poetry)。
+- `docs/task.md` – 任务清单 / Roadmap。
+- `docs/architecture-phase1.drawio`, `docs/dataflow-phase1.drawio` – 架构与数据流图。
+- `docs/update.md` – 更新日志 (例: 2025-01-09 系统监控与费用计算增强)。
+- `QUICKSTART.md` – 运维一页纸手册。
 
 ## 许可证
 

@@ -20,13 +20,19 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 
 ALLOWED_TAGS = list(
     set(bleach.sanitizer.ALLOWED_TAGS).union(
-        {"table", "thead", "tbody", "tr", "th", "td", "h1", "h2", "h3", "h4", "section", "article", "span"}
+        {
+            "table", "thead", "tbody", "tr", "th", "td", "h1", "h2", "h3", "h4",
+            "section", "article", "span", "div", "style", "html", "head", "body",
+            "meta", "title", "link", "p", "br", "strong", "em", "ul", "ol", "li"
+        }
     )
 )
 ALLOWED_ATTRIBUTES = {
-    "*": ["style", "class"],
+    "*": ["style", "class", "id"],
     "a": ["href", "title", "target", "rel"],
     "img": ["src", "alt", "title"],
+    "meta": ["charset", "name", "content"],
+    "div": ["class", "style", "id"],
 }
 
 
@@ -81,3 +87,29 @@ async def report_detail(
             "current_user": current_user,
         },
     )
+
+
+@router.post("/trigger-all-tasks")
+async def trigger_all_tasks_user(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """用户端手动触发所有任务（采集→抽取→成稿→发送）"""
+    from src.tasks.orchestrator import run_daily_report
+    from datetime import datetime
+
+    try:
+        # 触发完整的日报生成流程
+        result = run_daily_report.apply_async()
+
+        return {
+            "status": "success",
+            "message": "所有任务已成功触发",
+            "task_id": result.id
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"任务触发失败: {str(e)}"
+        }

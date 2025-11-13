@@ -51,6 +51,7 @@ def run_once(step: str, date: str, force: bool):
         python -m src.cli.run_once --step crawl
         python -m src.cli.run_once --step extract --date 2025-11-05
         python -m src.cli.run_once --step compose
+        python -m src.cli.run_once --step send
         python -m src.cli.run_once --step all
     """
     logger.info(f"开始执行步骤: {step}")

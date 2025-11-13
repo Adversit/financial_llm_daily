@@ -253,94 +253,116 @@
 
 <!-- 核心指标卡片 -->
 <div class="status-grid">
+    <!-- PostgreSQL 数据库 -->
     <div class="status-card">
         <div class="status-card-header">
-            <div class="status-card-icon icon-green">💚</div>
-            <div class="status-badge badge-healthy">正常</div>
+            <div class="status-card-icon {{ 'icon-green' if status.database.status == 'healthy' else 'icon-red' }}">
+                {{ '💚' if status.database.status == 'healthy' else '❤️' }}
+            </div>
+            <div class="status-badge {{ 'badge-healthy' if status.database.status == 'healthy' else 'badge-error' }}">
+                {{ '正常' if status.database.status == 'healthy' else '错误' }}
+            </div>
         </div>
         <div class="status-card-title">PostgreSQL 数据库</div>
-        <div class="status-card-value">99.8%</div>
+        <div class="status-card-value">
+            {{ status.database.details.response_time_ms if status.database.details.get('response_time_ms') else '--' }} ms
+        </div>
         <ul class="status-detail-list">
             <li class="status-detail-item">
                 <span class="detail-label">连接数</span>
-                <span class="detail-value">12 / 100</span>
+                <span class="detail-value">{{ status.database.details.connections if status.database.details.get('connections') is not none else '--' }}</span>
             </li>
             <li class="status-detail-item">
                 <span class="detail-label">响应时间</span>
-                <span class="detail-value">2.3 ms</span>
+                <span class="detail-value">{{ status.database.details.response_time_ms if status.database.details.get('response_time_ms') else '--' }} ms</span>
             </li>
             <li class="status-detail-item">
                 <span class="detail-label">数据库大小</span>
-                <span class="detail-value">234 MB</span>
+                <span class="detail-value">{{ status.database.details.size_mb if status.database.details.get('size_mb') else '--' }} MB</span>
             </li>
         </ul>
     </div>
 
+    <!-- Redis 缓存 -->
     <div class="status-card">
         <div class="status-card-header">
-            <div class="status-card-icon icon-blue">💙</div>
-            <div class="status-badge badge-healthy">正常</div>
+            <div class="status-card-icon {{ 'icon-blue' if status.redis.status == 'healthy' else 'icon-red' }}">
+                {{ '💙' if status.redis.status == 'healthy' else '❤️' }}
+            </div>
+            <div class="status-badge {{ 'badge-healthy' if status.redis.status == 'healthy' else 'badge-error' }}">
+                {{ '正常' if status.redis.status == 'healthy' else '错误' }}
+            </div>
         </div>
         <div class="status-card-title">Redis 缓存</div>
-        <div class="status-card-value">100%</div>
+        <div class="status-card-value">{{ status.redis.details.hit_rate if status.redis.details.get('hit_rate') is not none else '--' }}%</div>
         <ul class="status-detail-list">
             <li class="status-detail-item">
                 <span class="detail-label">内存使用</span>
-                <span class="detail-value">45.2 MB</span>
+                <span class="detail-value">{{ status.redis.details.used_memory_human if status.redis.details.get('used_memory_human') else '--' }}</span>
             </li>
             <li class="status-detail-item">
                 <span class="detail-label">键数量</span>
-                <span class="detail-value">1,234</span>
+                <span class="detail-value">{{ "{:,}".format(status.redis.details.key_count) if status.redis.details.get('key_count') is not none else '--' }}</span>
             </li>
             <li class="status-detail-item">
                 <span class="detail-label">命中率</span>
-                <span class="detail-value">98.5%</span>
+                <span class="detail-value">{{ status.redis.details.hit_rate if status.redis.details.get('hit_rate') is not none else '--' }}%</span>
             </li>
         </ul>
     </div>
 
+    <!-- Celery 任务队列 -->
     <div class="status-card">
         <div class="status-card-header">
-            <div class="status-card-icon icon-orange">🧡</div>
-            <div class="status-badge badge-warning">繁忙</div>
+            <div class="status-card-icon {{ 'icon-orange' if status.celery.details.get('queue_length', 0) > 10 else 'icon-green' if status.celery.status == 'healthy' else 'icon-red' }}">
+                {{ '🧡' if status.celery.details.get('queue_length', 0) > 10 else '💚' if status.celery.status == 'healthy' else '❤️' }}
+            </div>
+            <div class="status-badge {{ 'badge-warning' if status.celery.details.get('queue_length', 0) > 10 else 'badge-healthy' if status.celery.status == 'healthy' else 'badge-error' }}">
+                {{ '繁忙' if status.celery.details.get('queue_length', 0) > 10 else '正常' if status.celery.status == 'healthy' else '错误' }}
+            </div>
         </div>
         <div class="status-card-title">Celery 任务队列</div>
-        <div class="status-card-value">78%</div>
+        <div class="status-card-value">{{ status.celery.details.worker_count if status.celery.details.get('worker_count') is not none else '--' }} Workers</div>
         <ul class="status-detail-list">
             <li class="status-detail-item">
                 <span class="detail-label">活跃任务</span>
-                <span class="detail-value">3</span>
+                <span class="detail-value">{{ status.celery.details.active_tasks if status.celery.details.get('active_tasks') is not none else '--' }}</span>
             </li>
             <li class="status-detail-item">
                 <span class="detail-label">待处理</span>
-                <span class="detail-value">8</span>
+                <span class="detail-value">{{ status.celery.details.queue_length if status.celery.details.get('queue_length') is not none else '--' }}</span>
             </li>
             <li class="status-detail-item">
                 <span class="detail-label">今日完成</span>
-                <span class="detail-value">142</span>
+                <span class="detail-value">{{ status.celery.details.completed_today if status.celery.details.get('completed_today') is not none else '--' }}</span>
             </li>
         </ul>
     </div>
 
+    <!-- Web 服务 -->
     <div class="status-card">
         <div class="status-card-header">
-            <div class="status-card-icon icon-green">💚</div>
-            <div class="status-badge badge-healthy">正常</div>
+            <div class="status-card-icon {{ 'icon-green' if status.web.status == 'healthy' else 'icon-red' }}">
+                {{ '💚' if status.web.status == 'healthy' else '❤️' }}
+            </div>
+            <div class="status-badge {{ 'badge-healthy' if status.web.status == 'healthy' else 'badge-error' }}">
+                {{ '正常' if status.web.status == 'healthy' else '错误' }}
+            </div>
         </div>
         <div class="status-card-title">Web 服务</div>
-        <div class="status-card-value">99.9%</div>
+        <div class="status-card-value">运行中</div>
         <ul class="status-detail-list">
             <li class="status-detail-item">
-                <span class="detail-label">请求/秒</span>
-                <span class="detail-value">12.5</span>
+                <span class="detail-label">文章数</span>
+                <span class="detail-value">{{ "{:,}".format(status.database.details.articles) if status.database.details.get('articles') is not none else '--' }}</span>
             </li>
             <li class="status-detail-item">
-                <span class="detail-label">平均延迟</span>
-                <span class="detail-value">45 ms</span>
+                <span class="detail-label">报告数</span>
+                <span class="detail-value">{{ "{:,}".format(status.database.details.reports) if status.database.details.get('reports') is not none else '--' }}</span>
             </li>
             <li class="status-detail-item">
-                <span class="detail-label">今日请求</span>
-                <span class="detail-value">8,432</span>
+                <span class="detail-label">抽取条目</span>
+                <span class="detail-value">{{ "{:,}".format(status.database.details.extractions) if status.database.details.get('extractions') is not none else '--' }}</span>
             </li>
         </ul>
     </div>
@@ -352,10 +374,156 @@
         <span>📊</span>
         <span>系统性能趋势（最近24小时）</span>
     </div>
-    <div class="chart-placeholder">
-        📈 图表占位 - 可集成 Chart.js 或 ECharts 显示实时监控数据
-    </div>
+    <div id="performanceChart" style="height: 400px;"></div>
 </div>
+
+<!-- ECharts JS -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+    // 初始化图表
+    const chart = echarts.init(document.getElementById('performanceChart'));
+
+    // 加载性能数据
+    async function loadPerformanceData() {
+        try {
+            const response = await fetch('/admin/status/metrics');
+            const data = await response.json();
+
+            // 配置图表选项
+            const option = {
+                title: {
+                    text: '系统性能监控',
+                    left: 'center',
+                    textStyle: {
+                        color: '#0f172a',
+                        fontSize: 16,
+                        fontWeight: 600
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross'
+                    }
+                },
+                legend: {
+                    data: ['CPU使用率', '内存使用率', '数据库连接数', 'Redis内存'],
+                    bottom: 10,
+                    textStyle: {
+                        fontSize: 12
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: data.timestamps,
+                    axisLabel: {
+                        rotate: 45,
+                        fontSize: 11
+                    }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '使用率 (%)',
+                        position: 'left',
+                        axisLabel: {
+                            formatter: '{value}%'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    {
+                        type: 'value',
+                        name: '连接数',
+                        position: 'right',
+                        axisLabel: {
+                            formatter: '{value}'
+                        }
+                    }
+                ],
+                series: [
+                    {
+                        name: 'CPU使用率',
+                        type: 'line',
+                        smooth: true,
+                        data: data.metrics.cpu,
+                        yAxisIndex: 0,
+                        itemStyle: {
+                            color: '#3b82f6'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                                { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+                            ])
+                        }
+                    },
+                    {
+                        name: '内存使用率',
+                        type: 'line',
+                        smooth: true,
+                        data: data.metrics.memory,
+                        yAxisIndex: 0,
+                        itemStyle: {
+                            color: '#10b981'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+                                { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }
+                            ])
+                        }
+                    },
+                    {
+                        name: '数据库连接数',
+                        type: 'line',
+                        smooth: true,
+                        data: data.metrics.db_connections,
+                        yAxisIndex: 1,
+                        itemStyle: {
+                            color: '#f59e0b'
+                        }
+                    },
+                    {
+                        name: 'Redis内存',
+                        type: 'line',
+                        smooth: true,
+                        data: data.metrics.redis_memory,
+                        yAxisIndex: 0,
+                        itemStyle: {
+                            color: '#ef4444'
+                        }
+                    }
+                ]
+            };
+
+            chart.setOption(option);
+        } catch (error) {
+            console.error('加载性能数据失败:', error);
+            document.getElementById('performanceChart').innerHTML =
+                '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b;">加载数据失败,请刷新页面重试</div>';
+        }
+    }
+
+    // 初始加载
+    loadPerformanceData();
+
+    // 每30秒自动刷新数据
+    setInterval(loadPerformanceData, 3000000);
+
+    // 窗口大小改变时自动调整图表
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
+</script>
 
 <!-- 服务列表 -->
 <div class="service-list">

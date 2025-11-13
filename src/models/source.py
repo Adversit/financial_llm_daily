@@ -1,7 +1,7 @@
 """
 信息源模型
 """
-from sqlalchemy import Column, Integer, String, Boolean, Enum as SQLEnum, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, Enum as SQLEnum, DateTime, JSON
 from datetime import datetime
 import enum
 from .base import Base, TimestampMixin
@@ -33,6 +33,7 @@ class Source(Base, TimestampMixin):
     concurrency = Column(Integer, default=1, comment="并发数")
     timeout_sec = Column(Integer, default=30, comment="超时秒数")
     parser = Column(String(50), nullable=True, comment="解析器名称")
+    parser_config = Column(JSON, nullable=True, comment="解析器配置JSON: {need_scroll, link_selectors, wait_selector, allow_patterns}")
     region_hint = Column(SQLEnum(RegionHint, native_enum=True, values_callable=lambda x: [e.value for e in x]), default=RegionHint.UNKNOWN, comment="区域提示")
 
     def __repr__(self):

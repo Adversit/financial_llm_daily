@@ -287,11 +287,53 @@ async def _call_llm_for_report(prompt: str) -> str:
 
         if not content:
             logger.error("LLM 返回内容为空")
-            return "今日金融情报报告生成失败，请查看详细内容。"
+            return "今日金融情报报告生成失败,请查看详细内容。"
+
+        # 记录 token 使用情况和成本
+        usage = response.get("usage", {})
+        model = response.get("model", "unknown")
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
+
+        if prompt_tokens > 0 or completion_tokens > 0:
+            try:
+                from src.db.session import SessionLocal
+                from src.utils.cost_calculator import calculate_cost
+                from src.models.delivery import ProviderUsage
+
+                cost = calculate_cost(
+                    provider=provider_name,
+                    model=model,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                )
+
+                # 记录到数据库
+                db = SessionLocal()
+                try:
+                    usage_record = ProviderUsage(
+                        provider_name=provider_name,
+                        model_name=model,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                        total_tokens=prompt_tokens + completion_tokens,
+                        cost=cost,
+                    )
+                    db.add(usage_record)
+                    db.commit()
+                    logger.debug(
+                        f"报告生成成本记录: {provider_name}/{model}, "
+                        f"tokens={prompt_tokens + completion_tokens}, cost=¥{cost:.6f}"
+                    )
+                finally:
+                    db.close()
+
+            except Exception as log_error:
+                logger.error(f"记录报告生成成本失败: {log_error}")
 
         logger.success(f"LLM 报告生成成功，长度: {len(content)} 字符")
         return content.strip()
 
     except Exception as e:
         logger.error(f"LLM 报告生成失败: {e}", exc_info=True)
-        return "今日金融情报报告生成失败，请查看详细内容。"
+        return "今日金融情报报告生成失败,请查看详细内容。"

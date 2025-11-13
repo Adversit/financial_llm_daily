@@ -1,0 +1,281 @@
+<mxfile host="app.diagrams.net" modified="2025-01-11T00:00:00.000Z" agent="Claude Code" version="24.0.0">
+  <diagram name="系统架构图-Phase2" id="architecture-phase2">
+    <mxGraphModel dx="1434" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 标题 -->
+        <mxCell id="title" value="金融情报日报系统 V4 - 系统架构图" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 外部服务层 -->
+        <mxCell id="external-layer" value="外部服务层" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=14;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="1440" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-sources" value="&lt;b&gt;信息源&lt;/b&gt;&lt;br&gt;&lt;br&gt;RSS订阅源&lt;br&gt;静态网页&lt;br&gt;动态网页" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="external-layer">
+          <mxGeometry x="40" y="60" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-deepseek" value="&lt;b&gt;DeepSeek API&lt;/b&gt;&lt;br&gt;&lt;br&gt;deepseek-chat&lt;br&gt;64K context" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="external-layer">
+          <mxGeometry x="260" y="60" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-qwen" value="&lt;b&gt;Qwen API&lt;/b&gt;&lt;br&gt;&lt;br&gt;qwen-max&lt;br&gt;备用Provider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="external-layer">
+          <mxGeometry x="480" y="60" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-smtp" value="&lt;b&gt;SMTP服务&lt;/b&gt;&lt;br&gt;&lt;br&gt;163邮箱/QQ邮箱&lt;br&gt;企业邮箱" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="external-layer">
+          <mxGeometry x="700" y="60" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-docker" value="&lt;b&gt;Docker容器&lt;/b&gt;&lt;br&gt;&lt;br&gt;PostgreSQL 15&lt;br&gt;Redis 7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="external-layer">
+          <mxGeometry x="920" y="60" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-users" value="&lt;b&gt;终端用户&lt;/b&gt;&lt;br&gt;&lt;br&gt;邮件收件人&lt;br&gt;Web管理员" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="external-layer">
+          <mxGeometry x="1140" y="60" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 用户交互层 -->
+        <mxCell id="interaction-layer" value="用户交互层" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=14;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="1440" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="web-ui" value="&lt;b&gt;Web管理台&lt;/b&gt;&lt;br&gt;(FastAPI + Jinja2)&lt;br&gt;&lt;br&gt;• 报告浏览&lt;br&gt;• 系统监控&lt;br&gt;• 信息源管理&lt;br&gt;• 收件人管理&lt;br&gt;• 词云统计" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="interaction-layer">
+          <mxGeometry x="40" y="60" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cli-tools" value="&lt;b&gt;CLI工具&lt;/b&gt;&lt;br&gt;(src/cli)&lt;br&gt;&lt;br&gt;• run_once.py&lt;br&gt;• 手动触发任务&lt;br&gt;• 数据导入" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="interaction-layer">
+          <mxGeometry x="380" y="60" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth-module" value="&lt;b&gt;认证模块&lt;/b&gt;&lt;br&gt;(src/web/auth.py)&lt;br&gt;&lt;br&gt;• JWT Token&lt;br&gt;• 管理员密码&lt;br&gt;• 普通用户OTP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="interaction-layer">
+          <mxGeometry x="720" y="60" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="email-client" value="&lt;b&gt;邮件客户端&lt;/b&gt;&lt;br&gt;&lt;br&gt;• HTML邮件正文&lt;br&gt;• HTML附件&lt;br&gt;• 分区报告" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="interaction-layer">
+          <mxGeometry x="1060" y="60" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 业务逻辑层 -->
+        <mxCell id="business-layer" value="业务逻辑层" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=14;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="1440" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crawler-module" value="&lt;b&gt;爬虫模块&lt;/b&gt;&lt;br&gt;(src/crawlers)&lt;br&gt;&lt;br&gt;• RSS采集器&lt;br&gt;• 静态网页采集&lt;br&gt;• 文本提取&lt;br&gt;• SimHash去重" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;" vertex="1" parent="business-layer">
+          <mxGeometry x="40" y="60" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nlp-module" value="&lt;b&gt;NLP模块&lt;/b&gt;&lt;br&gt;(src/nlp)&lt;br&gt;&lt;br&gt;• LLM抽取器&lt;br&gt;• Provider路由&lt;br&gt;• 长文分块&lt;br&gt;• 结果合并&lt;br&gt;• 质量过滤" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="business-layer">
+          <mxGeometry x="320" y="60" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="composer-module" value="&lt;b&gt;报告生成模块&lt;/b&gt;&lt;br&gt;(src/composer)&lt;br&gt;&lt;br&gt;• 事实评分排序&lt;br&gt;• 分区TopN选取&lt;br&gt;• HTML构建&lt;br&gt;• 附件生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="business-layer">
+          <mxGeometry x="600" y="60" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mailer-module" value="&lt;b&gt;邮件模块&lt;/b&gt;&lt;br&gt;(src/mailer)&lt;br&gt;&lt;br&gt;• SMTP客户端&lt;br&gt;• 分批控制&lt;br&gt;• 节流限速&lt;br&gt;• 失败重试" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="business-layer">
+          <mxGeometry x="880" y="60" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="utils-module" value="&lt;b&gt;工具模块&lt;/b&gt;&lt;br&gt;(src/utils)&lt;br&gt;&lt;br&gt;• 日志配置&lt;br&gt;• 时间处理&lt;br&gt;• 重试装饰器&lt;br&gt;• 启动初始化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="business-layer">
+          <mxGeometry x="1160" y="60" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- 任务编排层 -->
+        <mxCell id="orchestration-layer" value="任务编排层 (Celery)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=14;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="760" width="1440" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="orchestrator" value="&lt;b&gt;任务编排器&lt;/b&gt;&lt;br&gt;(orchestrator.py)&lt;br&gt;&lt;br&gt;run_daily_report&lt;br&gt;chain调度" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1" vertex="1" parent="orchestration-layer">
+          <mxGeometry x="40" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crawl-tasks" value="&lt;b&gt;采集任务&lt;/b&gt;&lt;br&gt;(crawl_tasks)&lt;br&gt;&lt;br&gt;crawl_rss_task&lt;br&gt;crawl_static_task&lt;br&gt;队列: crawl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="orchestration-layer">
+          <mxGeometry x="280" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extract-tasks" value="&lt;b&gt;抽取任务&lt;/b&gt;&lt;br&gt;(extract_tasks)&lt;br&gt;&lt;br&gt;extract_article_task&lt;br&gt;run_extraction_batch&lt;br&gt;队列: extract" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="orchestration-layer">
+          <mxGeometry x="520" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="report-tasks" value="&lt;b&gt;报告任务&lt;/b&gt;&lt;br&gt;(report_tasks)&lt;br&gt;&lt;br&gt;build_report_task&lt;br&gt;队列: report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="orchestration-layer">
+          <mxGeometry x="760" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mail-tasks" value="&lt;b&gt;邮件任务&lt;/b&gt;&lt;br&gt;(mail_tasks)&lt;br&gt;&lt;br&gt;send_report_task&lt;br&gt;队列: mail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="orchestration-layer">
+          <mxGeometry x="1000" y="60" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="celery-beat" value="&lt;b&gt;定时调度&lt;/b&gt;&lt;br&gt;(Celery Beat)&lt;br&gt;&lt;br&gt;每天05:30触发" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="orchestration-layer">
+          <mxGeometry x="1240" y="60" width="160" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- 数据持久层 -->
+        <mxCell id="persistence-layer" value="数据持久层" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=14;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1000" width="1440" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="postgresql" value="&lt;b&gt;PostgreSQL 15&lt;/b&gt;&lt;br&gt;&lt;br&gt;• articles (文章)&lt;br&gt;• sources (信息源)&lt;br&gt;• extraction_queue (抽取队列)&lt;br&gt;• extraction_items (事实观点)&lt;br&gt;• reports (报告)&lt;br&gt;• delivery_log (投递日志)&lt;br&gt;• users (用户)&lt;br&gt;• system_settings (系统配置)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="persistence-layer">
+          <mxGeometry x="40" y="60" width="680" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="redis" value="&lt;b&gt;Redis 7&lt;/b&gt;&lt;br&gt;&lt;br&gt;• Celery Broker&lt;br&gt;• Celery Backend&lt;br&gt;• 词云缓存&lt;br&gt;• 节流控制" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="persistence-layer">
+          <mxGeometry x="760" y="60" width="640" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 箭头连接 -->
+        <!-- 外部服务 -> 用户交互 -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="external-users" target="web-ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 用户交互 -> 业务逻辑 -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="web-ui" target="crawler-module">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="cli-tools" target="nlp-module">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 业务逻辑 -> 任务编排 -->
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="crawler-module" target="crawl-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="nlp-module" target="extract-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="composer-module" target="report-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="mailer-module" target="mail-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 任务编排流程箭头 -->
+        <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#f8cecc;dashed=1;" edge="1" parent="1" source="orchestrator" target="crawl-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#f8cecc;dashed=1;" edge="1" parent="1" source="crawl-tasks" target="extract-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#f8cecc;dashed=1;" edge="1" parent="1" source="extract-tasks" target="report-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#f8cecc;dashed=1;" edge="1" parent="1" source="report-tasks" target="mail-tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f8cecc;" edge="1" parent="1" source="celery-beat" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 任务编排 -> 数据持久 -->
+        <mxCell id="arrow13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="crawl-tasks" target="postgresql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="extract-tasks" target="postgresql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="report-tasks" target="postgresql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#999999;" edge="1" parent="1" source="orchestrator" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 外部服务交互箭头 -->
+        <mxCell id="arrow17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="crawler-module" target="external-sources">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="480" />
+              <mxPoint x="200" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="nlp-module" target="external-deepseek">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="480" />
+              <mxPoint x="440" y="280" />
+              <mxPoint x="350" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="nlp-module" target="external-qwen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="480" />
+              <mxPoint x="480" y="280" />
+              <mxPoint x="570" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="mailer-module" target="external-smtp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="480" />
+              <mxPoint x="1000" y="280" />
+              <mxPoint x="790" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arrow21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="email-client" target="external-smtp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="280" />
+              <mxPoint x="790" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 图例 -->
+        <mxCell id="legend" value="图例" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;fontStyle=1;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="1580" y="100" width="200" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend1" value="实线箭头 = 直接调用" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="40" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend2" value="虚线箭头 = 备用回退" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="70" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend3" value="红色虚线 = 任务流程" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="100" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend4" value="黄色 = 采集层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="130" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend5" value="蓝色 = NLP/LLM层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="160" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend6" value="绿色 = 报告/邮件层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="190" width="180" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

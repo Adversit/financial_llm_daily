@@ -1,7 +1,7 @@
 """
 文章模型
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, BigInteger, ForeignKey, Enum as SQLEnum, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, BigInteger, ForeignKey, Enum as SQLEnum, Index, JSON
 from sqlalchemy.orm import relationship
 import enum
 from .base import Base, TimestampMixin
@@ -42,6 +42,7 @@ class Article(Base, TimestampMixin):
         nullable=False,
         comment="处理状态"
     )
+    keywords = Column(JSON, nullable=True, comment="文章关键词(3-5个名词,LLM提取)")
 
     # 关系
     source = relationship("Source", backref="articles")

@@ -83,3 +83,12 @@ playwright/.browsers/
 temp/
 tmp/
 *.tmp
+.pids/
+*.pid
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Drawio backup files
+.*.drawio.bkp
+*.drawio.bkp

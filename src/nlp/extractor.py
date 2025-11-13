@@ -51,6 +51,7 @@ EXTRACTION_PROMPT = """你是一个专业的金融情报分析师。请从以下
 4. **层级（layer）**：金融政策监管 | 金融经济 | 金融大模型技术 | 金融科技应用 | 未知
 5. **置信度（confidence）**：0.0-1.0，根据原文明确程度评估
 6. **金融相关性（finance_relevance）**：0.0-1.0，评估与金融行业的关联度
+7. **文章关键词（keywords）**：提取3-5个最能代表本文核心主题的关键词
 
 **层级定义（必须严格遵守）**：
 - **金融政策监管**：央行政策、金融监管、资本市场监管、金融法规等
@@ -71,6 +72,13 @@ EXTRACTION_PROMPT = """你是一个专业的金融情报分析师。请从以下
 - 纯政治事件（无金融监管内容）→ 过滤
 - 社会新闻（刑事案件、医疗事故等）→ 过滤
 
+**关键词提取要求**：
+- 必须是名词或名词短语
+- 优先选择金融专业术语
+- 关键词长度2-6个汉字
+- 如果原文是英文关键词，必须翻译成中文
+- 示例：["数字货币", "央行政策", "金融监管", "区块链技术", "IPO"]
+
 **返回格式**（严格的 JSON）：
 
 ```json
@@ -85,7 +93,8 @@ EXTRACTION_PROMPT = """你是一个专业的金融情报分析师。请从以下
       "confidence": 0.85,
       "finance_relevance": 0.9
     }}
-  ]
+  ],
+  "keywords": ["关键词1", "关键词2", "关键词3"]
 }}
 ```
 
@@ -93,7 +102,8 @@ EXTRACTION_PROMPT = """你是一个专业的金融情报分析师。请从以下
 - 每条必须包含清晰的事实描述
 - 观点字段可以为空字符串，但不要省略该字段
 - evidence_span 应引用原文的关键句段
-- 如果文章完全无金融相关内容，返回空数组 {{"items": []}}
+- keywords 字段必须提供，即使文章内容较少也要提取3-5个关键词
+- 如果文章完全无金融相关内容，返回 {{"items": [], "keywords": []}}
 - **严格使用标准 JSON 格式，所有字符串必须使用英文双引号 "，不要使用中文引号 " " ' '**
 - **evidence_span 中如果原文包含引号，请将其替换为单引号或直接省略**
 
@@ -114,6 +124,7 @@ class ExtractResult:
     """抽取结果"""
     status: str  # 'success', 'failed', 'partial'
     items: List[Dict]  # 抽取的事实观点列表
+    keywords: List[str]  # 文章关键词列表
     metadata: Dict  # 元数据
     error: Optional[str] = None
 
@@ -169,16 +180,19 @@ async def extract_from_chunk(
         result = json.loads(content)
 
         items = result.get("items", [])
+        keywords = result.get("keywords", [])
 
         logger.success(
             f"✅ 分块 {chunk_index + 1}/{total_chunks} 抽取成功，"
-            f"抽取了 {len(items)} 条，使用 Provider: {provider_name}"
+            f"抽取了 {len(items)} 条，{len(keywords)} 个关键词，使用 Provider: {provider_name}"
         )
 
         return {
             "chunk_index": chunk_index,
             "items": items,
+            "keywords": keywords,
             "provider": provider_name,
+            "model": response.get("model"),  # 添加model信息
             "usage": response.get("usage", {}),
             "status": "success"
         }
@@ -189,6 +203,7 @@ async def extract_from_chunk(
         return {
             "chunk_index": chunk_index,
             "items": [],
+            "keywords": [],
             "error": f"JSON解析失败: {str(e)}",
             "status": "failed"
         }
@@ -198,6 +213,7 @@ async def extract_from_chunk(
         return {
             "chunk_index": chunk_index,
             "items": [],
+            "keywords": [],
             "error": str(e),
             "status": "failed"
         }
@@ -225,6 +241,7 @@ async def extract_article(
             return ExtractResult(
                 status="failed",
                 items=[],
+                keywords=[],
                 metadata={},
                 error="文章不存在"
             )
@@ -235,6 +252,7 @@ async def extract_article(
             return ExtractResult(
                 status="failed",
                 items=[],
+                keywords=[],
                 metadata={"reason": "content_too_short"},
                 error="文章内容过短"
             )
@@ -295,6 +313,7 @@ async def extract_article(
 
         # 逐块抽取
         all_items = []
+        all_keywords = []
         chunk_results = []
         failed_chunks = 0
 
@@ -304,6 +323,9 @@ async def extract_article(
 
             if result["status"] == "success":
                 all_items.extend(result["items"])
+                # 收集关键词(如果有多个分块，取第一个分块的关键词作为文章关键词)
+                if i == 0 and result.get("keywords"):
+                    all_keywords = result["keywords"]
             else:
                 failed_chunks += 1
 
@@ -313,6 +335,16 @@ async def extract_article(
             "completion_tokens": sum(r.get("usage", {}).get("completion_tokens", 0) for r in chunk_results),
             "total_tokens": sum(r.get("usage", {}).get("total_tokens", 0) for r in chunk_results),
         }
+
+        # 获取使用的provider (取第一个成功的chunk的provider)
+        provider_used = None
+        model_used = None
+        for r in chunk_results:
+            if r.get("status") == "success":
+                provider_used = r.get("provider")
+                # 从顶层获取model信息(不是从usage中)
+                model_used = r.get("model")
+                break
 
         # 确定状态
         if failed_chunks == 0:
@@ -328,16 +360,19 @@ async def extract_article(
             "total_items": len(all_items),
             "usage": total_usage,
             "article_length": len(content),
+            "provider": provider_used,  # 添加provider信息
+            "model": model_used,  # 添加model信息
         })
 
         logger.info(
             f"文章 {article_id} 抽取完成: 状态={status}, "
-            f"抽取了 {len(all_items)} 条，失败 {failed_chunks} 块"
+            f"抽取了 {len(all_items)} 条，{len(all_keywords)} 个关键词，失败 {failed_chunks} 块"
         )
 
         return ExtractResult(
             status=status,
             items=all_items,
+            keywords=all_keywords,
             metadata=metadata,
             error=None if status != "failed" else "所有分块抽取失败"
         )
@@ -347,6 +382,7 @@ async def extract_article(
         return ExtractResult(
             status="failed",
             items=[],
+            keywords=[],
             metadata={},
             error=str(e)
         )

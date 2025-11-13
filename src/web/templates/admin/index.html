@@ -202,6 +202,12 @@
         <div class="action-title">操作审计</div>
         <div class="action-desc">查看管理员操作日志和系统事件</div>
     </a>
+
+    <a href="javascript:void(0);" onclick="triggerAllTasks(event)" class="action-card" id="triggerTasksCard">
+        <div class="action-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🚀</div>
+        <div class="action-title">手动生成日报</div>
+        <div class="action-desc">立即触发完整的日报生成流程(采集→抽取→成稿→发送)</div>
+    </a>
 </div>
 
 <!-- 系统信息 -->
@@ -240,5 +246,60 @@
         作为管理员，您可以配置系统参数、管理数据源和用户、监控系统状态。请谨慎操作，重要修改建议先备份数据。
     </div>
 </div>
+
+<script>
+async function triggerAllTasks(event) {
+    event.preventDefault();
+
+    const card = document.getElementById('triggerTasksCard');
+    const actionTitle = card.querySelector('.action-title');
+    const originalTitle = actionTitle.innerHTML;
+
+    // 确认对话框
+    if (!confirm('确定要手动触发日报生成任务吗？\n\n这将执行:\n1. 采集所有信息源\n2. 抽取关键信息\n3. 生成日报\n4. 发送邮件\n\n请确认是否继续？')) {
+        return;
+    }
+
+    try {
+        // 显示加载状态
+        actionTitle.innerHTML = '⏳ 正在触发任务...';
+        card.style.pointerEvents = 'none';
+        card.style.opacity = '0.7';
+
+        const response = await fetch('/admin/trigger-all-tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // 成功提示
+            actionTitle.innerHTML = '✅ 任务已触发';
+
+            alert(`任务触发成功！\n\n任务ID: ${data.task_id}\n\n任务正在后台执行中,您可以在系统状态页面查看执行进度。`);
+
+            // 3秒后恢复状态
+            setTimeout(() => {
+                actionTitle.innerHTML = originalTitle;
+                card.style.pointerEvents = '';
+                card.style.opacity = '';
+            }, 3000);
+        } else {
+            throw new Error(data.message || '任务触发失败');
+        }
+    } catch (error) {
+        console.error('触发任务失败:', error);
+        alert(`任务触发失败: ${error.message}`);
+
+        // 恢复状态
+        actionTitle.innerHTML = originalTitle;
+        card.style.pointerEvents = '';
+        card.style.opacity = '';
+    }
+}
+</script>
 
 {% endblock %}

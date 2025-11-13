@@ -104,12 +104,18 @@ class DeepSeekProvider(LLMProvider):
 class QwenProvider(LLMProvider):
     """Qwen (通义千问) Provider"""
 
-    def __init__(self):
+    def __init__(self, model: Optional[str] = None):
+        """
+        初始化 Qwen Provider
+
+        Args:
+            model: 指定使用的模型,如果不指定则使用配置的默认模型
+        """
         super().__init__(
             name="qwen",
             api_key=settings.PROVIDER_QWEN_API_KEY,
             base_url=settings.PROVIDER_QWEN_BASE_URL,
-            model=settings.PROVIDER_QWEN_MODEL,
+            model=model or settings.PROVIDER_QWEN_MODEL,
         )
 
     async def chat_completion(
@@ -150,26 +156,38 @@ class ProviderRouter:
     """Provider 路由器，支持自动回退"""
 
     def __init__(self):
-        """初始化所有可用的 Provider"""
+        """初始化所有可用的 Provider，按成本优先级排序"""
         self.providers: List[LLMProvider] = []
 
-        # 按优先级顺序初始化 Provider
+        # 按优先级顺序初始化 Provider (从低成本到高成本)
+        # 优先级1: Qwen-plus (¥0.018/10k+5k tokens, 最便宜)
+        try:
+            self.providers.append(QwenProvider(model="qwen-plus"))
+            logger.info("✅ Qwen-plus Provider 已加载 (优先级1: 最便宜)")
+        except Exception as e:
+            logger.warning(f"⚠️ Qwen-plus Provider 加载失败: {e}")
+
+        # 优先级2: DeepSeek (¥0.035/10k+5k tokens, 性能好)
         try:
             self.providers.append(DeepSeekProvider())
-            logger.info("✅ DeepSeek Provider 已加载")
+            logger.info("✅ DeepSeek Provider 已加载 (优先级2: 性能好)")
         except Exception as e:
             logger.warning(f"⚠️ DeepSeek Provider 加载失败: {e}")
 
+        # 优先级3: Qwen-max (¥0.180/10k+5k tokens, 质量最高但最贵)
         try:
-            self.providers.append(QwenProvider())
-            logger.info("✅ Qwen Provider 已加载")
+            self.providers.append(QwenProvider(model="qwen-max"))
+            logger.info("✅ Qwen-max Provider 已加载 (优先级3: 质量最高)")
         except Exception as e:
-            logger.warning(f"⚠️ Qwen Provider 加载失败: {e}")
+            logger.warning(f"⚠️ Qwen-max Provider 加载失败: {e}")
 
         if not self.providers:
             raise RuntimeError("没有可用的 LLM Provider")
 
-        logger.info(f"Provider 路由器初始化完成，可用 Provider: {[p.name for p in self.providers]}")
+        logger.info(
+            f"Provider 路由器初始化完成，优先级顺序: "
+            f"{[f'{p.name}/{p.model}' for p in self.providers]}"
+        )
 
     async def call_with_fallback(
         self,

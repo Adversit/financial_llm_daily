@@ -308,6 +308,9 @@
         </form>
 
         <div style="display: flex; gap: 0.75rem;">
+            <button onclick="triggerAllTasks()" class="btn btn-success btn-sm" id="triggerTasksBtn">
+                🚀 手动生成日报
+            </button>
             <a href="/stats/wordcloud/view" class="btn btn-secondary btn-sm">
                 ☁️ 词云分析
             </a>
@@ -402,5 +405,58 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+async function triggerAllTasks() {
+    const btn = document.getElementById('triggerTasksBtn');
+    const originalText = btn.innerHTML;
+
+    // 确认对话框
+    if (!confirm('确定要手动触发日报生成任务吗？\n\n这将执行:\n1. 采集所有信息源\n2. 抽取关键信息\n3. 生成日报\n4. 发送邮件\n\n请确认是否继续？')) {
+        return;
+    }
+
+    try {
+        // 禁用按钮,显示加载状态
+        btn.disabled = true;
+        btn.innerHTML = '⏳ 正在触发任务...';
+
+        const response = await fetch('/reports/trigger-all-tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // 成功提示
+            btn.innerHTML = '✅ 任务已触发';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-primary');
+
+            alert(`任务触发成功！\n\n任务ID: ${data.task_id}\n\n任务正在后台执行中,请稍后刷新页面查看结果。`);
+
+            // 3秒后恢复按钮状态
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                btn.disabled = false;
+            }, 3000);
+        } else {
+            throw new Error(data.message || '任务触发失败');
+        }
+    } catch (error) {
+        console.error('触发任务失败:', error);
+        alert(`任务触发失败: ${error.message}`);
+
+        // 恢复按钮状态
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+</script>
 
 {% endblock %}
