@@ -1163,28 +1163,518 @@ services:
 
 ---
 
-## 12. 下一阶段规划（Phase 3B）
+## 12. 云端部署策略（阿里云 4C8G ECS 环境）
 
-### 12.1 监控告警（Prometheus + Grafana）
+### 12.0 部署目标与环境说明
+
+**目标**：快速部署到阿里云 4核8G ECS，支持少量用户（<50人）使用，非隐私敏感数据
+
+**环境资源**：
+- 阿里云 ECS：4核8G 内存，40GB+ 磁盘
+- 用户规模：管理员 1-5人，邮件收件人 <50人
+- 数据安全级别：非隐私敏感，允许明文配置简化部署
+
+**部署原则**：
+- ✅ **P0 - 立即解决**：阻塞部署的问题，必须在上线前完成
+- ⏳ **P1 - 后续优化**：不影响基本功能，可以上线后逐步改进
+- 🔄 **P2 - 长期规划**：安全加固、高可用等企业级特性
+
+---
+
+### 12.1 最小可行部署方案（MVP Deploy）- 3天上线
+
+#### 阶段目标
+在 **3天内** 完成部署，系统能够：
+- ✅ 在 ECS 上通过 Docker Compose 一键启动
+- ✅ 定时采集信息源并生成日报
+- ✅ 发送邮件给收件人列表
+- ✅ 管理员可通过 Web 界面管理系统
+- ✅ 基本的日志记录和错误追踪
+
+#### 快速部署检查清单
+
+**Day 1 - 容器化基础（P0）**
+```yaml
+- [ ] 编写基础 Dockerfile（基于 python:3.11-slim + playwright）
+- [ ] 创建简化版 docker-compose.prod.yml（web + worker + beat + postgres + redis）
+- [ ] 配置 .env.prod 环境变量（明文配置，简化部署）
+- [ ] 测试本地 Docker 环境启动成功
+```
+
+**Day 2 - ECS 部署与调试（P0）**
+```yaml
+- [ ] 在 ECS 安装 Docker + Docker Compose
+- [ ] 上传代码和配置文件到 ECS
+- [ ] 启动服务并验证各组件健康状态
+- [ ] 配置防火墙开放 8000 端口
+- [ ] 执行数据库迁移和初始数据导入
+```
+
+**Day 3 - 功能验证与优化（P0）**
+```yaml
+- [ ] 手动触发采集任务，验证动态采集功能
+- [ ] 验证定时任务自动执行（Celery Beat）
+- [ ] 测试邮件发送功能
+- [ ] 配置域名解析（可选）
+- [ ] 添加基本的监控脚本（docker stats）
+```
+
+---
+
+### 12.2 P0 任务详解（阻塞部署，必须解决）
+
+#### P0-1：完成应用容器化 【Day 1，4小时】
+
+**现状问题**：
+- 应用依赖 `scripts/start_all.sh` 在本地虚拟环境启动
+- 云端无法使用 WSL 和交互式环境
+
+**最小化方案**（跳过多阶段构建优化）：
+
+### 12.1 容器化未完成风险 【P0 - 必须解决】
+
+**现状问题**：
+- `docker-compose.yml` 仅启动 Postgres/Redis，Web/Celery 仍依赖 `scripts/start_all.sh` 在本机 `.venv` 中用 `nohup + uvicorn --reload` 拉起
+- 云端节点无法依赖交互式虚拟环境，`--reload` 和 PID 文件管理不适用于生产环境
+
+**改进方案**：
+```yaml
+# 任务清单
+- [ ] 编写多阶段 Dockerfile，包含 poetry install + playwright install chromium
+- [ ] 在 docker-compose.prod.yml 中拆分服务：
+      - web: gunicorn -k uvicorn.workers.UvicornWorker --workers 2
+      - celery-worker: celery worker --concurrency=2
+      - celery-beat: celery beat
+      - scheduler: 独立定时调度服务（可选）
+- [ ] 移除 scripts/start_all.sh 对 nohup/PID 文件的依赖
+- [ ] 为每个服务配置健康检查与自动重启策略
+```
+
+**涉及文件**：
+- `docker-compose.yml:2-31`
+- `scripts/start_all.sh:7-140`
+
+---
+
+### 12.2 代理配置硬编码风险 【P0 - 必须解决】
+
+**现状问题**：
+- `.env.example` 将 `PLAYWRIGHT_PROXY` 硬编码为 `http://127.0.0.1:7890`
+- BrowserPool 和智能代理策略直接注入该地址到 Playwright 上下文
+- 云上容器若无同机代理会导致所有国外站点挂起或超时
+- 域名白名单硬编码在代码中，无法动态更新
+
+**改进方案**：
+```yaml
+# 任务清单
+- [ ] 修改 BrowserPool/ProxyStrategy，支持通过环境变量动态配置代理：
+      - PLAYWRIGHT_PROXY_ENABLED=true/false
+      - PLAYWRIGHT_PROXY_URL（留空则不使用代理）
+      - PROXY_DOMESTIC_DOMAINS（国内白名单域名，逗号分隔）
+- [ ] 将域名白名单迁移到数据库表（proxy_domain_rules）：
+      | id | domain         | use_proxy | priority |
+      |----|----------------|-----------|----------|
+      | 1  | *.cn          | false     | 100      |
+      | 2  | *.baidu.com   | false     | 90       |
+      | 3  | *             | true      | 0        |
+- [ ] 在管理后台添加"代理规则管理"页面，支持 CRUD 操作
+- [ ] 更新文档，说明不同部署环境的代理配置方案：
+      - 本地开发: http://127.0.0.1:7890
+      - 云端 VPC: http://proxy.internal:8080
+      - 无代理环境: 留空或 false
+```
+
+**涉及文件**：
+- `.env.example:29-35`
+- `src/crawlers/browser_pool.py:72-104`
+- `src/crawlers/proxy_strategy.py:23-145`
+
+---
+
+### 12.3 Playwright 运行时依赖缺失 【P0 - 必须解决】
+
+**现状问题**：
+- Dockerfile 未安装 `playwright install-deps` 需要的系统库（字体/glib/nss 等）
+- 容器启动时因缺少共享内存或 sandbox 权限导致 Chromium 启动失败
+- BrowserPool 强制使用 `--no-sandbox/--disable-dev-shm-usage` 存在安全隐患
+
+**改进方案**：
+```dockerfile
+# Dockerfile 改进示例
+FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy as base
+
+# 或使用自定义基础镜像
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 libnss3 libnspr4 libdbus-1-3 libatk1.0-0 \
+    libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
+    libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    fonts-wqy-zenhei && \
+    playwright install chromium && \
+    playwright install-deps && \
+    rm -rf /var/lib/apt/lists/*
+
+# 配置共享内存
+RUN mkdir -p /dev/shm && chmod 1777 /dev/shm
+```
+
+```yaml
+# docker-compose.prod.yml 配置
+services:
+  worker:
+    shm_size: '256mb'  # 增加共享内存
+    security_opt:
+      - seccomp:unconfined  # 放宽 seccomp 限制（仅在必要时）
+    # 或使用非 root 用户 + CAP_SYS_ADMIN
+    cap_add:
+      - SYS_ADMIN
+    user: "1000:1000"
+```
+
+**任务清单**：
+```yaml
+- [ ] 更新 Dockerfile，集成官方 Playwright 基础镜像或完整安装依赖
+- [ ] 配置容器 shm_size 和 seccomp 策略
+- [ ] 测试在无 --no-sandbox 模式下运行（优先推荐）
+- [ ] 添加健康检查脚本，验证 Chromium 可正常启动
+```
+
+**涉及文件**：
+- `Dockerfile` （待创建完整版本）
+- `src/crawlers/browser_pool.py:58-66`
+
+---
+
+### 12.4 数据库连接池配置错误 【P1 - 高优先级】
+
+**现状问题**：
+- `src/db/session.py` 强制使用 `NullPool`，每个请求新建 TCP 连接
+- 多进程 FastAPI/Celery 场景下会耗尽托管数据库连接数
+- 未配置连接池参数（`pool_size`/`max_overflow`）
+
+**改进方案**：
+```python
+# src/db/session.py 改进
+from sqlalchemy import create_engine
+from sqlalchemy.pool import QueuePool
+from src.config.settings import settings
+
+# 根据环境选择连接池策略
+if settings.ENV == "production":
+    engine = create_engine(
+        settings.DATABASE_URL,
+        poolclass=QueuePool,
+        pool_size=5,          # 基础连接数
+        max_overflow=10,      # 最大溢出连接
+        pool_timeout=30,      # 连接超时
+        pool_recycle=3600,    # 连接回收时间（1小时）
+        pool_pre_ping=True,   # 连接前检查有效性
+        echo=False
+    )
+else:
+    # 开发环境保持原有配置
+    engine = create_engine(
+        settings.DATABASE_URL,
+        poolclass=NullPool,
+        echo=True
+    )
+```
+
+**任务清单**：
+```yaml
+- [ ] 修改 src/db/session.py，根据 ENV 环境变量动态选择连接池
+- [ ] 为生产环境配置 QueuePool 参数（考虑 2C/2G 资源限制）
+- [ ] 可选：在数据库前部署 PgBouncer 连接池代理
+- [ ] 监控数据库连接数，添加告警规则（>80% 触发）
+```
+
+**涉及文件**：
+- `src/db/session.py:13-22`
+
+---
+
+### 12.5 日志与调度状态持久化缺失 【P1 - 高优先级】
+
+**现状问题**：
+- Loguru 默认写 `logs/app_*.log` 等本地文件，容器重启后丢失
+- `start_all.sh` 在项目根目录创建 `.pids` 文件
+- `celerybeat-schedule.db` 存储在容器内，无法横向扩展
+
+**改进方案**：
+```python
+# 方案一：日志输出到 STDOUT（推荐）
+from loguru import logger
+import sys
+
+logger.remove()  # 移除默认处理器
+logger.add(
+    sys.stdout,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
+    level="INFO" if settings.ENV == "production" else "DEBUG"
+)
+
+# 方案二：集中日志（ELK/CloudWatch）
+logger.add(
+    "syslog://logstash.internal:5140",  # Logstash 接收端
+    format="{message}",
+    serialize=True  # JSON 格式
+)
+```
+
+```yaml
+# docker-compose.prod.yml 日志配置
+services:
+  web:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+      # 或使用 fluentd/syslog driver
+      # driver: "fluentd"
+      # options:
+      #   fluentd-address: "localhost:24224"
+```
+
+```yaml
+# Celery Beat 持久化
+services:
+  beat:
+    command: celery -A src.tasks.celery_app beat --schedule /data/celerybeat-schedule.db
+    volumes:
+      - beat_schedule:/data  # 持久化卷
+volumes:
+  beat_schedule:
+```
+
+**任务清单**：
+```yaml
+- [ ] 修改 src/utils/logger.py，生产环境输出到 STDOUT
+- [ ] 移除 scripts/start_all.sh 对 .pids 文件的依赖
+- [ ] 配置 Celery Beat 使用持久化卷存储 schedule
+- [ ] 添加日志轮转与归档策略（保留 30 天）
+- [ ] 可选：集成 ELK Stack 或云厂商日志服务
+```
+
+**涉及文件**：
+- `src/utils/logger.py:11-82`
+- `scripts/start_all.sh` （待移除）
+- `docker-compose.prod.yml`
+
+---
+
+### 12.6 外部依赖网络策略缺失 【P1 - 高优先级】
+
+**现状问题**：
+- LLM 路由器并发访问 DeepSeek/Qwen API（国外域名）
+- 邮件发送通过 SSL 465 端口，很多云供应商默认封禁
+- 未配置重试、熔断与降级策略
+
+**改进方案**：
+```python
+# src/nlp/provider_router.py 改进
+import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+class ProviderRouter:
+    def __init__(self):
+        # 配置超时与重试
+        self.client = httpx.AsyncClient(
+            timeout=httpx.Timeout(90.0, connect=10.0),
+            limits=httpx.Limits(max_connections=10),
+            transport=httpx.AsyncHTTPTransport(retries=3)
+        )
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
+    async def call_provider(self, provider: str, prompt: str):
+        try:
+            response = await self.client.post(...)
+            return response.json()
+        except httpx.ConnectTimeout:
+            logger.error(f"Provider {provider} connection timeout, check network policy")
+            raise
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:  # Rate limit
+                logger.warning(f"Provider {provider} rate limited, retrying...")
+                raise
+            else:
+                return None  # 降级处理
+```
+
+**网络策略检查清单**：
+```yaml
+- [ ] 申请云厂商出站白名单：
+      - api.deepseek.com（DeepSeek API）
+      - dashscope.aliyuncs.com（Qwen API）
+      - smtp.exmail.qq.com:465（企业邮箱）
+- [ ] 配置 HTTP 代理或 VPN 转发服务
+- [ ] 为所有外部 API 调用添加 timeout/retry/circuit breaker
+- [ ] 在管理后台添加"外部服务连通性测试"工具
+- [ ] 监控外部 API 成功率，<95% 时触发告警
+```
+
+**涉及文件**：
+- `src/nlp/provider_router.py:24-190`
+- `src/mailer/smtp_client.py:34-123`
+
+---
+
+### 12.7 安全配置不足 【P1 - 高优先级】
+
+**现状问题**：
+- `ALLOWED_HOSTS`/`CORS_ORIGINS`/`JWT_SECRET_KEY` 仍是示例值
+- Web 模块未配置 HTTPS/反向代理信任
+- 环境变量中直接内嵌 API Key 和密码
+
+**改进方案**：
+
+**1. 安全配置强化**：
+```python
+# src/config/settings.py
+class Settings(BaseSettings):
+    # 强制生产环境覆盖
+    ALLOWED_HOSTS: list[str] = Field(
+        default=["*"] if ENV == "development" else [],
+        description="允许的域名列表，生产环境必须显式配置"
+    )
+
+    CORS_ORIGINS: list[str] = Field(
+        default=["*"] if ENV == "development" else [],
+        description="CORS 允许的源"
+    )
+
+    JWT_SECRET_KEY: str = Field(
+        ...,  # 必填
+        min_length=32,
+        description="JWT 签名密钥，至少 32 字符"
+    )
+
+    @validator("JWT_SECRET_KEY")
+    def validate_jwt_secret(cls, v, values):
+        if values.get("ENV") == "production" and v == "change-this-to-a-very-long-random-string":
+            raise ValueError("生产环境必须更换 JWT_SECRET_KEY")
+        return v
+```
+
+**2. 密钥管理（Docker Secrets）**：
+```yaml
+# docker-compose.prod.yml
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  deepseek_api_key:
+    file: ./secrets/deepseek_api_key.txt
+  smtp_password:
+    file: ./secrets/smtp_password.txt
+
+services:
+  web:
+    secrets:
+      - postgres_password
+      - deepseek_api_key
+      - smtp_password
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      PROVIDER_DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+      SMTP_PASS_FILE: /run/secrets/smtp_password
+```
+
+```python
+# src/config/settings.py 支持文件读取
+@validator("POSTGRES_PASSWORD", pre=True)
+def load_from_file(cls, v):
+    if file_path := os.getenv("POSTGRES_PASSWORD_FILE"):
+        return Path(file_path).read_text().strip()
+    return v
+```
+
+**3. 反向代理配置**：
+```python
+# src/web/app.py
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+
+if settings.ENV == "production":
+    # 强制 HTTPS
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+    # 限制允许的 Host 头
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.ALLOWED_HOSTS
+    )
+
+    # 信任反向代理的 X-Forwarded-* 头
+    app.middleware("http")(trust_forwarded_headers)
+```
+
+**任务清单**：
+```yaml
+- [ ] 更新 src/config/settings.py，生产环境强制验证安全参数
+- [ ] 实现 Docker Secrets 支持，移除 .env 中的明文密钥
+- [ ] 添加 TrustedHostMiddleware 和 HTTPS 重定向
+- [ ] 配置 Nginx 反向代理，终结 TLS
+- [ ] 在部署文档中强调生产环境配置检查清单
+- [ ] 使用工具生成强密码（如 openssl rand -base64 32）
+```
+
+**涉及文件**：
+- `src/config/settings.py:94-111`
+- `.env.example:6-19,76-84`
+- `docker-compose.prod.yml`
+
+---
+
+### 12.8 改进优先级与时间规划
+
+| 优先级 | 风险项 | 预计工时 | 目标完成阶段 |
+|--------|--------|----------|--------------|
+| **P0** | 容器化未完成 | 3 天 | Phase 3A Week 1 |
+| **P0** | 代理配置硬编码 | 2 天 | Phase 3A Week 1 |
+| **P0** | Playwright 依赖缺失 | 1 天 | Phase 3A Week 1 |
+| **P1** | 数据库连接池错误 | 0.5 天 | Phase 3A Week 2 |
+| **P1** | 日志持久化缺失 | 1 天 | Phase 3A Week 2 |
+| **P1** | 外部依赖网络策略 | 1.5 天 | Phase 3A Week 2 |
+| **P1** | 安全配置不足 | 2 天 | Phase 3A Week 2 |
+
+**Phase 3A 调整后验收标准**：
+- [ ] 所有 P0 风险项已解决并通过测试
+- [ ] 完整的 Docker 镜像可在无本地虚拟环境的云服务器上运行
+- [ ] 代理配置可通过环境变量动态调整，域名规则存储在数据库
+- [ ] Playwright 在标准容器环境中稳定运行 ≥24 小时
+- [ ] 数据库连接池在生产环境未出现连接耗尽
+- [ ] 所有 P1 风险项已完成或有明确的缓解措施
+- [ ] 通过安全扫描（无高危漏洞），密钥已迁移到 Secrets
+
+---
+
+## 13. 下一阶段规划（Phase 3B - 后续增强）
+
+### 13.1 监控告警（Prometheus + Grafana）
 
 - 集成 Prometheus Exporter（Postgres、Redis、Celery）
 - Grafana 仪表盘：队列积压、任务成功率、LLM 费用趋势
 - 告警规则：容器崩溃、任务失败率 >10%、磁盘使用 >80%
 
-### 12.2 CI/CD 流水线
+### 13.2 CI/CD 流水线
 
 - GitHub Actions / GitLab CI 自动化测试
 - 镜像构建与漏洞扫描（Trivy）
 - 自动部署到生产环境（Webhook + docker-compose pull）
 
-### 12.3 高可用增强
+### 13.3 高可用增强
 
 - PostgreSQL 主从复制（Patroni + etcd）
 - Redis Sentinel 哨兵模式
 - Celery Worker 多实例负载均衡
 - Nginx 负载均衡（多 Web 实例）
 
-### 12.4 业务增强
+### 13.4 业务增强
 
 - 多租户支持（SaaS 化）
 - WebSocket 实时推送（报告生成进度）

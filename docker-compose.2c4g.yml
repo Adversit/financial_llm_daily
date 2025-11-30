@@ -1,0 +1,154 @@
+version: '3.8'
+
+# 2核4G ECS 精简配置
+# 目标：将内存使用控制在 3.5GB 以内，为系统保留 500MB
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: finrep_postgres_prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fin_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_prod}
+      POSTGRES_DB: ${POSTGRES_DB:-fin_daily_report}
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fin_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # 2C4G优化：减少内存限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 512M  # 从1G降至512M
+        reservations:
+          cpus: '0.3'
+          memory: 256M
+
+  redis:
+    image: redis:7-alpine
+    container_name: finrep_redis_prod
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # 2C4G优化：减少内存限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M  # 从512M降至256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  web:
+    image: finrep/app:mvp
+    container_name: finrep_web_prod
+    command: uvicorn src.web.app:app --host 0.0.0.0 --port 8000 --workers 1
+    # 关键优化：从2个worker降至1个，减少内存占用
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.prod
+    environment:
+      - ENV=production
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 2C4G优化：减少资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G  # 从2G降至1G
+        reservations:
+          cpus: '0.3'
+          memory: 512M
+
+  worker:
+    image: finrep/app:mvp
+    container_name: finrep_worker_prod
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=1 --max-tasks-per-child=20
+    # 关键优化：并发从2降至1，max-tasks从50降至20
+    env_file:
+      - .env.prod
+    environment:
+      - ENV=production
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    shm_size: '256mb'  # 从512mb降至256mb（Playwright最低要求）
+    # 2C4G优化：大幅减少内存限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1.5G  # 从3G降至1.5G（Playwright最低要求约1.2G）
+        reservations:
+          cpus: '0.5'
+          memory: 800M
+
+  beat:
+    image: finrep/app:mvp
+    container_name: finrep_beat_prod
+    command: celery -A src.tasks.celery_app beat --loglevel=info --schedule /data/celerybeat-schedule.db
+    env_file:
+      - .env.prod
+    environment:
+      - ENV=production
+    volumes:
+      - ./logs:/app/logs
+      - beat_schedule:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # 2C4G优化：保持最小配置
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+volumes:
+  postgres_data:
+  redis_data:
+  beat_schedule:
+
+networks:
+  default:
+    name: finrep-net
