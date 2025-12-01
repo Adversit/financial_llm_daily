@@ -29,10 +29,16 @@ class LLMProvider(ABC):
         self.api_key = api_key
         self.base_url = base_url
         self.model = model
+        # 创建不使用代理的HTTP客户端(国内LLM API不需要代理)
         self.client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
             timeout=settings.LLM_TIMEOUT_SEC,
+            http_client=httpx.AsyncClient(
+                proxies={},  # 使用空字典禁用代理(避免SOCKS代理错误)
+                trust_env=False,  # 完全忽略环境变量中的代理配置
+                timeout=settings.LLM_TIMEOUT_SEC,
+            ),
         )
 
     @abstractmethod
